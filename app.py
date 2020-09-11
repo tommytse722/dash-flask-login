@@ -48,7 +48,37 @@ def display_page(pathname):
         return login.layout
     elif pathname == '/success':
         if current_user.is_authenticated:
-            return success.layout
+            layout = html.Div(children=[
+                dcc.Location(id='url_login_success', refresh=True),
+                html.Div(
+                    className="container",
+                    children=[
+                        html.Div(
+                            html.Div(
+                                className="row",
+                                children=[
+                                    html.Div(
+                                        className="ten columns",
+                                        children=[
+                                            html.Br(),
+                                            html.Div(current_user.username),
+                                        ]
+                                    ),
+                                    html.Div(
+                                        className="two columns",
+                                        # children=html.A(html.Button('LogOut'), href='/')
+                                        children=[
+                                            html.Br(),
+                                            html.Button(id='back-button', children='Go back', n_clicks=0)
+                                        ]
+                                    )
+                                ]
+                            )
+                        )
+                    ]
+                )
+            ])
+            return layout
         else:
             return login_fd.layout
     elif pathname == '/logout':
