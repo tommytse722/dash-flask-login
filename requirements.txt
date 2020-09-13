@@ -28,6 +28,7 @@ werkzeug==1.0.1           # via -r requirements.in, flask
 pandas
 xlrd
 yfinance
+matplotlib
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
