@@ -27,6 +27,7 @@ sqlalchemy==1.3.17        # via -r requirements.in, flask-sqlalchemy
 werkzeug==1.0.1           # via -r requirements.in, flask
 pandas
 xlrd
+yfinance
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

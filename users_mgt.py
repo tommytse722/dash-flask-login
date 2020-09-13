@@ -41,7 +41,7 @@ def del_user(username):
 
 
 def show_users():
-    select_st = select([User_tbl.c.username, User_tbl.c.email])
+    select_st = select([User_tbl.c.id, User_tbl.c.username, User_tbl.c.email])
 
     conn = engine.connect()
     rs = conn.execute(select_st)

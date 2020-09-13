@@ -1,32 +1,75 @@
 # index page
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 
 from server import app, server
 from flask_login import logout_user, current_user
 from views import success, login, login_fd, logout
+from strategy_mgt import db, Strategy
 
+import plan_mgt
+import strategy_mgt
+import stock_mgt
+
+# My code
+
+import numpy as np
 import pandas as pd
+import csv
+from datetime import date, datetime, timedelta
+import sqlite3
 
-def get_stock_df():
-  hkex_excel = pd.read_excel('https://www.hkex.com.hk/eng/services/trading/securities/securitieslists/ListOfSecurities.xlsx', skiprows = 2)
-  stock_df = hkex_excel[['Stock Code', 'Name of Securities', 'Board Lot']].copy()
-  stock_df = stock_df.rename(columns={"Stock Code": "stock", "Name of Securities": "name", "Board Lot": "board_lot"})
-  stock_df['stock'] = stock_df['stock'].apply(format_stock)
-  stock_df['board_lot'] = stock_df['board_lot'].apply(format_board_lot)
-  return stock_df
+def select_strategy():
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT * FROM strategy", conn)
+    conn.close()
+    return df
 
-def format_stock(stock):
-  return str(stock).zfill(4) + ".HK"
+def select_stock():
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT * FROM stock", conn)
+    conn.close()
+    return df
 
-def format_board_lot(board_lot):
-  return int(board_lot.replace(",", ""))
+def get_user_strategy(user_id):
+    value = ''
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT strategy_id FROM plan where plan.user_id=" + str(user_id), conn)
+    if len(df)>0:
+        value = int(df.head(1)['strategy_id'][0])
+    conn.close()
+    return value
+
+def get_user_stock(user_id):
+    value = ''
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT stock_code FROM plan where plan.user_id=" + str(user_id), conn)
+    if len(df)>0:
+        value = df['stock_code'].tolist()
+    conn.close()
+    return value
+
+def get_user_capital(user_id):
+    value = 100000
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT capital FROM plan where plan.user_id=" + str(user_id), conn)
+    if len(df)>0:
+        value = str(df.head(1)['capital'][0])
+    conn.close()
+    return value
+
+def get_plan(id):
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT * FROM plan where plan.user_id=" + str(id), conn)
+    conn.close()
+    return df.head(1)
 
 def download_data_from_yf(period, interval, stock_list):
-  import yfinance as yf
-  data = yf.download(tickers = stock_list, period = period, interval = interval, group_by = 'ticker', auto_adjust = False, prepost = True, threads = True, proxy = None)
-  return data
+    import yfinance as yf
+    data = yf.download(tickers = stock_list, period = period, interval = interval, group_by = 'ticker', auto_adjust = False, prepost = True, threads = True, proxy = None)
+    return data
+
 
 header = html.Div(
     className='header',
@@ -60,6 +103,28 @@ app.layout = html.Div(
 )
 
 
+success_layout = html.Div(children=[
+    dcc.Location(id='url_login_success', refresh=True),
+    dcc.Dropdown(
+        id='strategy-dropdown',
+        options=[{'label': row['name'], 'value': row['id']} for index, row in select_strategy().iterrows()],
+        value=''
+    ),
+    dcc.Dropdown(
+        id='stock-dropdown',
+        options=[{'label': row['code'] + ' ' + row['name'], 'value': row['code']} for index, row in select_stock().iterrows()],
+        value='',
+        multi=True
+        ),
+    dcc.Input(id='capital-text', type='number', value='', min=10000, step=10000, style={'width': '110px', 'textAlign': 'right'}),
+
+     html.P(children=[
+        html.Button('Create', type='submit', id='create-button', n_clicks=0),
+        ]),
+    html.Div(id='display-selected-values')
+])
+
+
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])
 def display_page(pathname):
@@ -69,30 +134,7 @@ def display_page(pathname):
         return login.layout
     elif pathname == '/success':
         if current_user.is_authenticated:
-            layout = html.Div(children=[
-                dcc.Location(id='url_login_success', refresh=True),
-                dcc.Dropdown(
-                    options=[
-                        {'label': 'SMA', 'value': 'SMA'},
-                        {'label': 'RSI', 'value': 'RSI'},
-                        {'label': 'MACD', 'value': 'MACD'}
-                    ],
-                    value='SMA'
-                ),
-                dcc.Dropdown(
-                    id='my-dropdown',
-                    options=[{'label': row['stock'] + ' ' + row['name'], 'value': row['stock']} for index, row in get_stock_df().iterrows()],
-                    value='',
-                    multi=True
-                    ),
-            
-                dcc.Input(type='number', value=100000, min=10000, step=10000, style={'width': '110px', 'textAlign': 'right'}),
-            
-                 html.P(children=[
-                    html.Button('Create', id='submit-val', n_clicks=0),
-                    ]),
-            ])
-            return layout
+            return success_layout
         else:
             return login_fd.layout
     elif pathname == '/logout':
@@ -110,10 +152,37 @@ def display_page(pathname):
     [Input('page-content', 'children')])
 def cur_user(input1):
     if current_user.is_authenticated:
-        return html.Div('Current user: ' + current_user.username)
+        return html.Div(current_user.email)
         # 'User authenticated' return username in get_id()
     else:
         return ''
+    
+@app.callback(
+    Output('strategy-dropdown', 'value'),
+    [Input('page-content', 'children')])
+def cur_user(input1):
+    if current_user.is_authenticated:
+        return get_user_strategy(current_user.id)
+    else:
+        return ''
+    
+@app.callback(
+    Output('stock-dropdown', 'value'),
+    [Input('page-content', 'children')])
+def cur_user(input1):
+    if current_user.is_authenticated:
+        return get_user_stock(current_user.id)
+    else:
+        return ''
+    
+@app.callback(
+    Output('capital-text', 'value'),
+    [Input('page-content', 'children')])
+def cur_user(input1):
+    if current_user.is_authenticated:
+        return get_user_capital(current_user.id)
+    else:
+        return 100000
 
 
 @app.callback(
@@ -124,7 +193,20 @@ def user_logout(input1):
         return html.A('Logout', href='/logout')
     else:
         return ''
+    
+@app.callback(
+    Output('display-selected-values', 'children'),
+    [Input('create-button', 'n_clicks')],
+    [State('strategy-dropdown', 'value'),
+    State('stock-dropdown', 'value'),
+    State('capital-text', 'value')])
+def create_plan(n_clicks, strategy, stocks, capital):
+    if n_clicks>0:
+        plan_mgt.del_plan(current_user.id)
+    for stock in stocks:
+        plan_mgt.add_plan(current_user.id, strategy, stock, capital)
+    return ''
 
-
+    
 if __name__ == '__main__':
     app.run_server(debug=True)
