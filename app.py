@@ -1,4 +1,5 @@
 # index page
+import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
@@ -59,11 +60,17 @@ def get_user_capital(user_id):
     conn.close()
     return value
 
+def get_all_plans():
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT * FROM plan", conn)
+    conn.close()
+    return df
+
 def get_plan(id):
     conn = sqlite3.connect('database.db')
     df = pd.read_sql_query("SELECT * FROM plan where plan.user_id=" + str(id), conn)
     conn.close()
-    return df.head(1)
+    return df
 
 def download_data_from_yf(period, interval, stock_list):
     import yfinance as yf
@@ -102,7 +109,6 @@ app.layout = html.Div(
     ]
 )
 
-
 success_layout = html.Div(children=[
     dcc.Location(id='url_login_success', refresh=True),
     dcc.Dropdown(
@@ -121,7 +127,8 @@ success_layout = html.Div(children=[
      html.P(children=[
         html.Button('Create', type='submit', id='create-button', n_clicks=0),
         ]),
-    html.Div(id='display-selected-values')
+    html.Div(id='display-selected-values'),
+    dash_table.DataTable(id='table', columns = [{"name": i, "id": i} for i in get_all_plans().columns],)
 ])
 
 
@@ -183,7 +190,7 @@ def cur_user(input1):
         return get_user_capital(current_user.id)
     else:
         return 100000
-
+    
 
 @app.callback(
     Output('logout', 'children'),
@@ -195,7 +202,7 @@ def user_logout(input1):
         return ''
     
 @app.callback(
-    Output('display-selected-values', 'children'),
+    Output('table', 'data'),
     [Input('create-button', 'n_clicks')],
     [State('strategy-dropdown', 'value'),
     State('stock-dropdown', 'value'),
@@ -205,7 +212,7 @@ def create_plan(n_clicks, strategy, stocks, capital):
         plan_mgt.del_plan(current_user.id)
     for stock in stocks:
         plan_mgt.add_plan(current_user.id, strategy, stock, capital)
-    return ''
+    return get_plan(current_user.id).to_dict('records')
 
     
 if __name__ == '__main__':
