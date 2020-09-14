@@ -10,7 +10,7 @@ db = SQLAlchemy()
 class Plan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
-    strategy_id = db.Column(db.Integer)
+    strategy_name = db.Column(db.String(20))
     stock_code = db.Column(db.String(20))
     capital = db.Column(db.Integer)
 
@@ -26,8 +26,8 @@ def drop_plan_table():
     Plan_tbl.drop(engine)
 
 
-def add_plan(user_id, strategy_id, stock_code, capital):
-    insert_cmd = Plan_tbl.insert().values(user_id=user_id, strategy_id=strategy_id, stock_code=stock_code, capital=capital)
+def add_plan(user_id, strategy_name, stock_code, capital):
+    insert_cmd = Plan_tbl.insert().values(user_id=user_id, strategy_name=strategy_name, stock_code=stock_code, capital=capital)
     conn = engine.connect()
     conn.execute(insert_cmd)
     conn.close()
@@ -41,12 +41,8 @@ def del_plan(user_id):
     conn.close()
 
 def show_plan():
-    select_cmd = select([Plan_tbl.c.id, Plan_tbl.c.user_id, Plan_tbl.c.strategy_id, Plan_tbl.c.stock_code, Plan_tbl.c.capital])
-
+    select_cmd = select([Plan_tbl.c.strategy_name, Plan_tbl.c.stock_code, Plan_tbl.c.capital])
     conn = engine.connect()
     rs = conn.execute(select_cmd)
-
-    for row in rs:
-        print(row)
-
     conn.close()
+    return rs
