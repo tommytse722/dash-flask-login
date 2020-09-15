@@ -421,7 +421,7 @@ def plot_performance(performance):
     fig = make_subplots(
         rows=1, cols=2,
         specs=[[{"type": "domain"}, {"type": "domain"}]],
-        subplot_titles=['Trade: '+str(no_of_trade), 'Profit: '+str(total_profit)]
+        subplot_titles=['Trade#: '+str(no_of_trade), 'Profit: $'+str(total_profit)]
     )
 
     fig.add_trace(go.Pie(labels=count_labels, name='', values=count_values, hole=0.6, rotation=180, marker=dict(colors=colors), textinfo='value+percent'),
