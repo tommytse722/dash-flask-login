@@ -421,20 +421,21 @@ def plot_performance(performance):
     fig = make_subplots(
         rows=1, cols=2,
         specs=[[{"type": "domain"}, {"type": "domain"}]],
+        subplot_titles=['No. of Trade: '+str(no_of_trade), 'Net Profit: '+str(total_profit)]
     )
 
-    fig.add_trace(go.Pie(labels=count_labels, name='', values=count_values, hole=0.9, marker=dict(colors=colors), textinfo='value+percent'),
+    fig.add_trace(go.Pie(labels=count_labels, name='', values=count_values, hole=0.7, rotation=180, marker=dict(colors=colors), textinfo='value+percent'),
                   row=1, col=1)
 
-    fig.add_trace(go.Pie(labels=sum_labels, name='', values=sum_values, hole=0.9, marker=dict(colors=colors), textinfo='value'),
+    fig.add_trace(go.Pie(labels=sum_labels, name='', values=sum_values, hole=0.7, rotation=180, marker=dict(colors=colors), textinfo='value'),
                   row=1, col=2)
     
 
-    title = 'Performance of ' + strategy + ' ( ROI: ' + '{:.2%}'.format(ROI) + ' )' + ' on ' + stock
-    fig.update_layout(
-    title_text=title,
-    annotations=[dict(text='No. of Trade: '+str(no_of_trade), x=0.13, y=0.5, font_size=18, showarrow=False),
-                 dict(text='Net Profit: '+str(total_profit), x=0.9, y=0.5, font_size=18, showarrow=False)])
+#    title = 'Performance of ' + strategy + ' ( ROI: ' + '{:.2%}'.format(ROI) + ' )' + ' on ' + stock
+#    fig.update_layout(
+#    title_text=title,
+#    annotations=[dict(text='No. of Trade: '+str(no_of_trade), x=0.13, y=0.5, font_size=18, showarrow=False),
+#                 dict(text='Net Profit: '+str(total_profit), x=0.9, y=0.5, font_size=18, showarrow=False)])
 
     return fig
 
@@ -690,7 +691,7 @@ def create_plan(n_clicks, strategy, stocks, capital):
         )
         
         tabs.append(
-            dcc.Tab(label=stock, children=graphs)
+            dcc.Tab(label='{} ({:.2%})'.format(stock, performance[9]), children=graphs)
         )
         
         send_order_signal(current_user.email, tx_df, performance, date.today())
@@ -699,15 +700,17 @@ def create_plan(n_clicks, strategy, stocks, capital):
         trade_frames = [all_trade_df, trade_df]
         all_trade_df = pd.concat(trade_frames)
        
+    all_performance = get_performance_df(all_tx_df, all_trade_df)
+    
     portfolio_graphs = []
     portfolio_graphs.append(
         dcc.Graph(
         id='performance-{}'.format('Portfolio'),
-        figure = plot_performance(get_performance_df(all_tx_df, all_trade_df))
+        figure = plot_performance(all_performance)
         )
     )  
     tabs.insert(0, 
-                dcc.Tab(label='Portfolio', children=portfolio_graphs)
+                dcc.Tab(label='{} ({:.2%})'.format('Portfolio', all_performance[9]), children=portfolio_graphs)
                )
  
     return html.Div(dcc.Tabs(tabs))
