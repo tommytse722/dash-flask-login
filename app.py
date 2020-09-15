@@ -691,7 +691,7 @@ def create_plan(n_clicks, strategy, stocks, capital):
         )
         
         tabs.append(
-            dcc.Tab(label='{} ({:.2%})'.format(stock, performance[9]), children=graphs)
+            dcc.Tab(label='{} ({:.1%})'.format(stock, performance[9]), children=graphs)
         )
         
         send_order_signal(current_user.email, tx_df, performance, date.today())
@@ -710,7 +710,7 @@ def create_plan(n_clicks, strategy, stocks, capital):
         )
     )  
     tabs.insert(0, 
-                dcc.Tab(label='{} ({:.2%})'.format('Portfolio', all_performance[9]), children=portfolio_graphs)
+                dcc.Tab(label='{} ({:.1%})'.format('Portfolio', all_performance[9]), children=portfolio_graphs)
                )
  
     return html.Div(dcc.Tabs(tabs))
