@@ -376,7 +376,7 @@ def get_performance_df(tx_df, trade_df):
     no_of_trade = int(no_of_win + no_of_loss)
     total_win = trade_df[trade_df['net_profit']>0]['net_profit'].sum().round(0)
     total_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].sum().round(0)
-    total_profit = (total_win + total_loss).round(2)
+    total_profit = (total_win + total_loss).round(0)
     total_cost = trade_df['tx_cost'].sum()
     
     
