@@ -374,8 +374,8 @@ def get_performance_df(tx_df, trade_df):
     no_of_win = trade_df[trade_df['net_profit']>0]['net_profit'].count()
     no_of_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].count()
     no_of_trade = int(no_of_win + no_of_loss)
-    total_win = trade_df[trade_df['net_profit']>0]['net_profit'].sum().round(2)
-    total_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].sum().round(2)
+    total_win = trade_df[trade_df['net_profit']>0]['net_profit'].sum().round(0)
+    total_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].sum().round(0)
     total_profit = (total_win + total_loss).round(2)
     total_cost = trade_df['tx_cost'].sum()
     
@@ -421,7 +421,7 @@ def plot_performance(performance):
     fig = make_subplots(
         rows=1, cols=2,
         specs=[[{"type": "domain"}, {"type": "domain"}]],
-        subplot_titles=['No. of Trade: '+str(no_of_trade), 'Net Profit: '+str(total_profit)]
+        subplot_titles=['Trade: '+str(no_of_trade), 'Profit: '+str(total_profit)]
     )
 
     fig.add_trace(go.Pie(labels=count_labels, name='', values=count_values, hole=0.6, rotation=180, marker=dict(colors=colors), textinfo='value+percent'),
