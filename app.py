@@ -377,7 +377,7 @@ def get_performance_df(tx_df, trade_df):
     total_win = trade_df[trade_df['net_profit']>0]['net_profit'].sum().round(0)
     total_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].sum().round(0)
     total_profit = total_win + total_loss
-    total_cost = trade_df['tx_cost'].sum()
+    total_cost = trade_df['tx_cost'].sum().round(0)
     
     
     initial_value = float(tx_df.groupby('stock').first().agg({'value': 'sum'})[0])
@@ -400,10 +400,10 @@ def plot_performance(performance):
     no_of_win = int(performance[2])
     no_of_loss = int(performance[3])
     no_of_trade = int(performance[4])
-    total_win = float(performance[5])
-    total_loss = float(performance[6])
-    total_profit = float(performance[7])
-    total_cost = float(performance[8])
+    total_win = int(performance[5])
+    total_loss = int(performance[6])
+    total_profit = int(performance[7])
+    total_cost = int(performance[8])
     ROI = float(performance[9])
 
     colors = ['green','red']
