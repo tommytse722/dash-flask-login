@@ -230,9 +230,17 @@ def plot_signals(df):
                             ), secondary_y=False)
     
     # Set title
-    fig.update_layout(
-        title_text='Trading Signals of ' + strategy + ' on ' + stock
-    )
+#    fig.update_layout(
+#        title_text='Trading Signals of ' + strategy + ' on ' + stock
+#    )
+    
+    fig.update_layout(legend=dict(
+    orientation="h",
+    yanchor="bottom",
+    y=1.02,
+    xanchor="right",
+    x=1
+    ))
 
     # Add range slider
     fig.update_layout(
@@ -419,9 +427,9 @@ def plot_performance(performance):
     df_sum = pd.DataFrame(sum_data)
 
     fig = make_subplots(
-        rows=1, cols=2,
+        rows=1, cols=2, horizontal_spacing=0.3,
         specs=[[{"type": "domain"}, {"type": "domain"}]],
-        subplot_titles=['Trade#: '+str(no_of_trade), 'Profit: $'+str(total_profit)]
+        subplot_titles=['Trade(s): '+str(no_of_trade), 'Profit($): '+str(total_profit)]
     )
 
     fig.add_trace(go.Pie(labels=count_labels, name='', values=count_values, hole=0.6, rotation=180, marker=dict(colors=colors), textinfo='value+percent'),
@@ -437,6 +445,14 @@ def plot_performance(performance):
 #    annotations=[dict(text='No. of Trade: '+str(no_of_trade), x=0.13, y=0.5, font_size=18, showarrow=False),
 #                 dict(text='Net Profit: '+str(total_profit), x=0.9, y=0.5, font_size=18, showarrow=False)])
 
+    fig.update_layout(legend=dict(
+    orientation="h",
+    yanchor="bottom",
+    y=1.1,
+    xanchor="right",
+    x=1
+    ))
+    
     return fig
 
 def send_html_email(receiver, subject, html_body):
