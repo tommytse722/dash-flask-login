@@ -244,7 +244,7 @@ def plot_signals(df):
 
     # Add range slider
     fig.update_layout(
-        height=450, width=850,
+        height=450
         xaxis=dict(
             rangeselector=dict(
                 buttons=list([
@@ -445,7 +445,7 @@ def plot_performance(performance):
 #    annotations=[dict(text='No. of Trade: '+str(no_of_trade), x=0.13, y=0.5, font_size=18, showarrow=False),
 #                 dict(text='Net Profit: '+str(total_profit), x=0.9, y=0.5, font_size=18, showarrow=False)])
 
-    fig.update_layout(height=300, width=850)
+    fig.update_layout(height=300)
 
     fig.update_layout(legend=dict(
     orientation="h",
