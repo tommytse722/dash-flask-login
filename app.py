@@ -237,14 +237,14 @@ def plot_signals(df):
     fig.update_layout(legend=dict(
     orientation="h",
     yanchor="bottom",
-    y=1.05,
+    y=1.1,
     xanchor="right",
     x=1
     ))
 
     # Add range slider
     fig.update_layout(
-        height=450,
+        height=400,
         xaxis=dict(
             rangeselector=dict(
                 buttons=list([
@@ -450,7 +450,7 @@ def plot_performance(performance):
     fig.update_layout(legend=dict(
     orientation="h",
     yanchor="bottom",
-    y=1.05,
+    y=1.1,
     xanchor="right",
     x=1
     ))
