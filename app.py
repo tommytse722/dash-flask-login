@@ -558,7 +558,7 @@ success_layout = html.Div(children=[
     dcc.Input(id='capital-text', type='number', value='', min=10000, step=10000, style={'width': '110px', 'textAlign': 'right'}),
     html.Button('Create', type='submit', id='create-button', n_clicks=0),
 #   dash_table.DataTable(id='table', columns = [{"name": i, "id": i} for i in get_all_plans().columns]),
-    html.Div(id='container',style = {'display': 'inline-block', 'width': '48%'}),
+    html.Div(id='container',style = {'width': '100%'}),
 ])
 
 
