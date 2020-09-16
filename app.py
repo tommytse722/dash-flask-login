@@ -237,7 +237,7 @@ def plot_signals(df):
     fig.update_layout(legend=dict(
     orientation="h",
     yanchor="bottom",
-    y=1.1,
+    y=1.05,
     xanchor="right",
     x=1
     ))
@@ -450,7 +450,7 @@ def plot_performance(performance):
     fig.update_layout(legend=dict(
     orientation="h",
     yanchor="bottom",
-    y=1.3,
+    y=1.05,
     xanchor="right",
     x=1
     ))
