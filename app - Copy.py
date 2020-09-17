@@ -1,31 +1,34 @@
-import numpy as np
-import pandas as pd
-import csv
-from datetime import date, datetime, timedelta
-import sqlite3
-
+# index page
 import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
+from server import app, server
+from flask_login import logout_user, current_user
+from views import success, login, login_fd, logout
+from strategy_mgt import db, Strategy
+
+import plan_mgt
+import strategy_mgt
+import stock_mgt
+
+# My code
+
+import numpy as np
+import pandas as pd
+import csv
+from datetime import date, datetime, timedelta
+import sqlite3
+import TA
+import Email
+
+#Data Visualization
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import matplotlib.pyplot as plt
 plt.style.use('fivethirtyeight')
-
-from server import app, server
-from flask_login import logout_user, current_user
-from views import success, login, login_fd, logout
-
-import plan_mgt
-import strategy_mgt
-import stock_mgt
-import TA
-import Email
-
-from strategy_mgt import db, Strategy
 
 
 def select_strategy():
@@ -52,19 +55,32 @@ def select_stock_board_lot(stock_code):
     conn.close()
     return df
 
-def get_content(user_id):
-    strategy = ''
-    stocks = ''
-    capital = 100000
+def get_user_strategy(user_id):
+    value = ''
     conn = sqlite3.connect('database.db')
-    df = pd.read_sql_query("SELECT strategy_name, stock_code, capital FROM plan WHERE plan.user_id=" + str(user_id), conn)
-    conn.close()
+    df = pd.read_sql_query("SELECT strategy_name FROM plan where plan.user_id=" + str(user_id), conn)
     if len(df)>0:
-        strategy = df.head(1)['strategy_name'][0]
-        stocks = df['stock_code'].tolist()
-        capital = str(df.head(1)['capital'][0])
-    
-    return strategy, stocks, capital
+        value = df.head(1)['strategy_name'][0]
+    conn.close()
+    return value
+
+def get_user_stock(user_id):
+    value = ''
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT stock_code FROM plan where plan.user_id=" + str(user_id), conn)
+    if len(df)>0:
+        value = df['stock_code'].tolist()
+    conn.close()
+    return value
+
+def get_user_capital(user_id):
+    value = 100000
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT capital FROM plan where plan.user_id=" + str(user_id), conn)
+    if len(df)>0:
+        value = str(df.head(1)['capital'][0])
+    conn.close()
+    return value
 
 def get_all_plans():
     conn = sqlite3.connect('database.db')
@@ -77,7 +93,6 @@ def get_plan(id):
     df = pd.read_sql_query("SELECT strategy_name as 'Strategy', stock_code as 'Stock Code', capital as 'Initial Capital' FROM plan where plan.user_id=" + str(id), conn)
     conn.close()
     return df
-
 
 def get_tx_cost(transaction_amount):
     total = 0
@@ -95,6 +110,10 @@ def get_tx_shares(item, position, position_row, last_cash, last_shares):
     # Use all the cash allocated to a particular stock to buy as much shares as possible            
     if int(position_row.action) == 1:
         if int(last_shares)==0:
+            #print(position[0:position.index.get_loc(item)+1]['close'])
+            #Trend Prediction
+            #stock_data = stock_historial_data2[user_stock_row.stock].copy()
+            #print(get_future_trend(stock_data[0:stock_data.index.get_loc(item)+1]))
             board_lot = select_stock_board_lot(position_row.stock)['board_lot'][0]
             tx_shares = np.floor( (last_cash - get_tx_cost(last_cash)) / (position_row.close * board_lot) ) * board_lot
     # Sell all the shares in hand
@@ -136,14 +155,28 @@ def plot_signals(df):
                              hovertemplate="%{x}<br>%{text} shares @ $%{y}"
                             ), secondary_y=False)
     
-    fig.update_layout(
-        height=400,
-        legend=dict(orientation="h", yanchor="bottom", y=1.2, xanchor="right", x=1),
-        margin=dict(l=10, r=10, b=20, t=10)
-    )
+    # Set title
+#    fig.update_layout(
+#        title_text='Trading Signals of ' + strategy + ' on ' + stock
+#    )
+    
+    fig.update_layout(legend=dict(
+    orientation="h",
+    yanchor="bottom",
+    y=1.2,
+    xanchor="right",
+    x=1
+    ),
+    margin=dict(
+        l=10,
+        r=10,
+        b=20,
+        t=10
+    ))
 
     # Add range slider
     fig.update_layout(
+        height=400,
         xaxis=dict(
             rangeselector=dict(
                 buttons=list([
@@ -209,6 +242,7 @@ def plot_tx(tx_df):
     
     title = 'Transaction records of ' + strategy + ' on ' + stock
     fig.update_layout(
+        width=960,
         title_text=title)
     return fig
     
@@ -263,6 +297,7 @@ def plot_trade(trade_df):
     
     title = 'Trade records of ' + strategy + ' on ' + stock
     fig.update_layout(
+        width=960,
         title_text=title)
     return fig
 
@@ -289,6 +324,12 @@ def get_performance_df(tx_df, trade_df):
     final_value = initial_value + total_profit
     ROI = ((final_value-initial_value)/initial_value)
 
+    #no_of_trade = no_of_win+no_of_loss
+    #win_factor = no_of_win/no_of_trade
+    #max_drawdown = trade_record['net_profit'].min()
+    #total_profit = total_win+total_loss
+    #average_profit = total_profit/no_of_trade
+    #profit_factor = total_win/(-1*total_loss)
     return [strategy, stock, no_of_win, no_of_loss, no_of_trade, total_win, total_loss, total_profit, total_cost, ROI]
 
 def plot_performance(performance):
@@ -328,102 +369,40 @@ def plot_performance(performance):
 
     fig.add_trace(go.Pie(labels=sum_labels, name='', values=sum_values, hole=0.5, rotation=180, marker=dict(colors=colors), textinfo='value'),
                   row=1, col=2)
+    
 
-    fig.update_layout(
-        height=400,
-        legend=dict(orientation="h", yanchor="bottom", y=1.2, xanchor="right", x=1),
-        margin=dict(l=10, r=10, b=20, t=10)
-    )
+#    title = 'Performance of ' + strategy + ' ( ROI: ' + '{:.2%}'.format(ROI) + ' )' + ' on ' + stock
+#    fig.update_layout(
+#    title_text=title,
+#    annotations=[dict(text='No. of Trade: '+str(no_of_trade), x=0.13, y=0.5, font_size=18, showarrow=False),
+#                 dict(text='Net Profit: '+str(total_profit), x=0.9, y=0.5, font_size=18, showarrow=False)])
+
+    fig.update_layout(height=400)
+
+    fig.update_layout(legend=dict(
+    orientation="h",
+    yanchor="bottom",
+    y=1.2,
+    xanchor="right",
+    x=1
+    ),
+    margin=dict(
+        l=10,
+        r=10,
+        b=20,
+        t=10
+    ))
     
     return fig
 
 
-def show_plan(strategy, stocks, capital):
-    tabs = []
-    all_tx_df = pd.DataFrame(columns = ['strategy', 'stock', 'close', 'tx_shares', 'tx_cost', 'shares', 'cash', 'value'])
-    all_trade_df = pd.DataFrame(columns = ['trade_no', 'strategy', 'stock', 'tx_cost', 'net_profit'])
-    for stock in stocks:
-        graphs = []
-        position = eval('TA.'+strategy)(strategy, stock)
-        position['tx_shares'] = int(0)
-        position['tx_cost'] = 0.0
-        position['shares'] = int(0)
-        position['cash'] = 0.0
-        position['value'] = 0.0
         
-        last_cash = int(capital)
-        last_shares = 0  
-        
-        for item, position_row in position.iterrows():
-
-            position.loc[item, 'tx_shares'] = int(get_tx_shares(item, position, position_row, last_cash, last_shares))
-            position.loc[item, 'tx_cost'] = get_tx_cost(position_row.close * abs(position.loc[item, 'tx_shares']))
-            position.loc[item, 'shares'] = int(last_shares + position.loc[item, 'tx_shares'])
-            position.loc[item, 'cash'] = last_cash - position_row.close * position.loc[item, 'tx_shares'] - position.loc[item, 'tx_cost']
-            position.loc[item, 'value'] = position.loc[item, 'cash'] + position_row.close * position.loc[item, 'shares']
-
-            last_cash = position.loc[item, 'cash']
-            last_shares = position.loc[item, 'shares']
-        
-        tx_df = get_tx_df(position)
-        
-        trade_df = get_trade_df(tx_df, get_current_shares_value(position))
-        
-        performance = get_performance_df(tx_df, trade_df)
-        
-        graphs.append(
-            dcc.Graph(
-                id='performance-{}'.format(stock),
-                figure = plot_performance(performance),
-                config={
-                    'displayModeBar': False
-                }
-            )
-        )  
-        
-        graphs.append(
-            dcc.Graph(
-                id='graph-{}'.format(stock),
-                figure = plot_signals(position),
-                config={
-                    'displayModeBar': False
-                }
-            )
-        )
-        
-        tabs.append(dcc.Tab(label='{} ({:.1%})'.format(stock, performance[9]), children=graphs))
-        
-        Email.send_order_signal(current_user.email, tx_df, performance, date.today())
-        tx_frames = [all_tx_df, tx_df]
-        all_tx_df = pd.concat(tx_frames)
-        trade_frames = [all_trade_df, trade_df]
-        all_trade_df = pd.concat(trade_frames)
-       
-    if len(stocks)>0:        
-        all_performance = get_performance_df(all_tx_df, all_trade_df)
-
-        portfolio_graphs = []
-        portfolio_graphs.append(
-            dcc.Graph(
-                id='performance-{}'.format('Portfolio'),
-                figure = plot_performance(all_performance),
-                config={
-                    'displayModeBar': False
-                }
-            )
-        )  
-
-        tabs.insert(0, dcc.Tab(label='{} ({:.1%})'.format('Portfolio', all_performance[9]), children=portfolio_graphs))
-    
-    return html.Div(dcc.Tabs(tabs))
-
-
 app.layout = html.Div(
     [
         header,
         html.Div([
             html.Div(
-                html.Div(id='page-content', className='content'), 
+                html.Div(id='page-content', className='content'),
                 className='content-container'
             ),
         ], className='container-width'),
@@ -482,8 +461,38 @@ def cur_user(input1):
         # 'User authenticated' return username in get_id()
     else:
         return ''
+    
+    
+@app.callback(
+    Output('strategy-dropdown', 'value'),
+    [Input('page-content', 'children')])
+def cur_user(input1):
+    if current_user.is_authenticated:
+        return get_user_strategy(current_user.id)
+    else:
+        return ''
+    
+    
+@app.callback(
+    Output('stock-dropdown', 'value'),
+    [Input('page-content', 'children')])
+def cur_user(input1):
+    if current_user.is_authenticated:
+        return get_user_stock(current_user.id)
+    else:
+        return ''
+    
+    
+@app.callback(
+    Output('capital-text', 'value'),
+    [Input('page-content', 'children')])
+def cur_user(input1):
+    if current_user.is_authenticated:
+        return get_user_capital(current_user.id)
+    else:
+        return 100000
+    
 
-        
 @app.callback(
     Output('logout', 'children'),
     [Input('page-content', 'children')])
@@ -495,31 +504,111 @@ def user_logout(input1):
     
     
 @app.callback(
-    [Output('strategy-dropdown', 'value'),
-     Output('stock-dropdown', 'value'),
-     Output('capital-text', 'value')
-    ],
-    [Input('page-content', 'children')])
-def cur_user(input1):
-    if current_user.is_authenticated:
-        return get_content(current_user.id)
-    else:
-        return '', '', 100000
-    
-    
-@app.callback(
     Output('container', 'children'),
     [Input('create-button', 'n_clicks')],
     [State('strategy-dropdown', 'value'),
     State('stock-dropdown', 'value'),
     State('capital-text', 'value')])
-def create_plan(create_clicks, strategy, stocks, capital):
-    if create_clicks>0:
+def create_plan(n_clicks, strategy, stocks, capital):
+    if n_clicks>0:
         plan_mgt.del_plan(current_user.id)
-        for stock in stocks:
-            plan_mgt.add_plan(current_user.id, strategy, stock, capital)
-    return show_plan(strategy, stocks, capital)
+    for stock in stocks:
+        plan_mgt.add_plan(current_user.id, strategy, stock, capital)
+    tabs = []
+    all_tx_df = pd.DataFrame(columns = ['strategy', 'stock', 'close', 'tx_shares', 'tx_cost', 'shares', 'cash', 'value'])
+    all_trade_df = pd.DataFrame(columns = ['trade_no', 'strategy', 'stock', 'tx_cost', 'net_profit'])
+    for stock in stocks:
+        graphs = []
+        position = eval('TA.'+strategy)(strategy, stock)
+        position['tx_shares'] = int(0)
+        position['tx_cost'] = 0.0
+        position['shares'] = int(0)
+        position['cash'] = 0.0
+        position['value'] = 0.0
+        
+        last_cash = int(capital)
+        last_shares = 0  
+        
+        for item, position_row in position.iterrows():
 
+            position.loc[item, 'tx_shares'] = int(get_tx_shares(item, position, position_row, last_cash, last_shares))
+            position.loc[item, 'tx_cost'] = get_tx_cost(position_row.close * abs(position.loc[item, 'tx_shares']))
+            position.loc[item, 'shares'] = int(last_shares + position.loc[item, 'tx_shares'])
+            position.loc[item, 'cash'] = last_cash - position_row.close * position.loc[item, 'tx_shares'] - position.loc[item, 'tx_cost']
+            position.loc[item, 'value'] = position.loc[item, 'cash'] + position_row.close * position.loc[item, 'shares']
 
+            last_cash = position.loc[item, 'cash']
+            last_shares = position.loc[item, 'shares']
+        
+        tx_df = get_tx_df(position)
+        
+#       graphs.append(
+#            dcc.Graph(
+#            id='tx-{}'.format(stock),
+#            figure = plot_tx(tx_df)
+#            )
+#        )    
+        
+        trade_df = get_trade_df(tx_df, get_current_shares_value(position))
+        
+#        graphs.append(
+#            dcc.Graph(
+#            id='trade-{}'.format(stock),
+#            figure = plot_trade(trade_df)
+#            )
+#        )  
+        
+        performance = get_performance_df(tx_df, trade_df)
+        
+        graphs.append(
+            dcc.Graph(
+            id='performance-{}'.format(stock),
+            figure = plot_performance(performance),
+        config={
+        'displayModeBar': False
+        }
+            )
+        )  
+        
+        graphs.append(
+            dcc.Graph(
+            id='graph-{}'.format(stock),
+            figure = plot_signals(position),
+        config={
+        'displayModeBar': False
+        }
+            )
+        )
+        
+        tabs.append(
+            dcc.Tab(label='{} ({:.1%})'.format(stock, performance[9]), children=graphs)
+        )
+        
+        Email.send_order_signal(current_user.email, tx_df, performance, date.today())
+        tx_frames = [all_tx_df, tx_df]
+        all_tx_df = pd.concat(tx_frames)
+        trade_frames = [all_trade_df, trade_df]
+        all_trade_df = pd.concat(trade_frames)
+       
+    all_performance = get_performance_df(all_tx_df, all_trade_df)
+    
+    portfolio_graphs = []
+    portfolio_graphs.append(
+        dcc.Graph(
+        id='performance-{}'.format('Portfolio'),
+        figure = plot_performance(all_performance),
+        config={
+        'displayModeBar': False
+        }
+        )
+    )  
+    tabs.insert(0, 
+                dcc.Tab(label='{} ({:.1%})'.format('Portfolio', all_performance[9]), children=portfolio_graphs)
+               )
+ 
+    return html.Div(dcc.Tabs(tabs))
+    #get_plan(current_user.id).to_dict('records')
+
+    
 if __name__ == '__main__':
     app.run_server(debug=True)
