@@ -20,8 +20,8 @@ import pandas as pd
 import csv
 from datetime import date, datetime, timedelta
 import sqlite3
-
-import yfinance as yf
+import TA
+import Email
 
 #Data Visualization
 import plotly.express as px
@@ -30,75 +30,6 @@ from plotly.subplots import make_subplots
 import matplotlib.pyplot as plt
 plt.style.use('fivethirtyeight')
 
-#Email
-import smtplib, ssl
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-
-def download_data_from_yf(period, interval, stock_list):
-    data = yf.download(tickers = stock_list, period = period, interval = interval, group_by = 'ticker', prepost = True)
-    return data
-
-def get_stock_historial_data(stock_list, period='1y'):
-    yf_data = download_data_from_yf(period, '1d', stock_list).copy()
-    yf_data.rename(columns = {'Open':'open',
-                              'High':'high',
-                              'Low':'low',
-                              'Close':'close',
-                              'Adj Close':'adj_close',
-                              'Volume':'volume',
-                             }, inplace=True)
-    yf_data.index.names = ["date"]
-    data = yf_data.round(3).copy()
-    return data
-
-def get_historial_data(stock):
-    signals = get_stock_historial_data(stock).copy()
-    if stock == '0017.HK':
-        split_date = datetime(2020,6,9)
-        for item, row in signals.iterrows():
-            if item<=split_date:
-                signals.loc[item, 'close'] = row.close * 4
-    return signals
-
-def SMA(strategy, stock):
-    short_window = "20"
-    long_window = "50"
-    signals = get_historial_data(stock)
-    signals[strategy+short_window] = signals.close.rolling(window=int(short_window)).mean().astype(float)
-    signals[strategy+long_window] = signals.close.rolling(window=int(long_window)).mean().astype(float)
-    signals['strength'] = np.where(signals[strategy+short_window] > signals[strategy+long_window], 1, 0).astype(int)
-    signals['strategy'] = strategy
-    signals['stock'] = stock
-    signals['action'] = np.diff(signals['strength'], prepend=0).astype(int)
-    return signals
-
-def RSI(strategy, stock):
-    window = '14'
-    amplitude = '20'
-    resistance = 50 + int(amplitude)
-    support = 50 - int(amplitude)
-    signals = get_historial_data(stock)
-    signals['change'] = np.diff(signals.close, prepend=0)
-    signals['up_strength'] = np.where(signals['change'] > 0, signals['change'], 0)
-    signals['dn_strength'] = np.where(signals['change'] < 0, abs(signals['change']), 0)
-    signals['up_win'] = signals['up_strength'].rolling(window=int(window)).mean().astype(float)
-    signals['dn_win'] = signals['dn_strength'].rolling(window=int(window)).mean().astype(float)
-    signals['up_win'].fillna(1, inplace=True)
-    signals['dn_win'].fillna(1, inplace=True)
-    signals[strategy+window] = (100 * signals['up_win'] / (signals['up_win'] + signals['dn_win'] ))
-    signals[strategy+window+'='+str(resistance)] = resistance
-    signals[strategy+window+'='+str(support)] = support
-    signals['strength'] = int(0)
-    signals['strength'] = np.where(signals[strategy+window] > signals[strategy+window+'='+str(resistance)], resistance, signals['strength'])
-    signals['strength'] = np.where(signals[strategy+window] < signals[strategy+window+'='+str(support)], -1 * support, signals['strength']) 
-    signals['edge'] = np.diff(signals['strength'], prepend=0).astype(int)
-    signals['strategy'] = strategy
-    signals['stock'] = stock
-    signals['action'] = int(0)
-    signals['action'] = np.where(signals['edge']==support, 1, signals['action']) 
-    signals['action'] = np.where(signals['edge']==(-1 * resistance), -1, signals['action'])
-    return signals
 
 def select_strategy():
     conn = sqlite3.connect('database.db')
@@ -162,11 +93,6 @@ def get_plan(id):
     df = pd.read_sql_query("SELECT strategy_name as 'Strategy', stock_code as 'Stock Code', capital as 'Initial Capital' FROM plan where plan.user_id=" + str(id), conn)
     conn.close()
     return df
-
-def download_data_from_yf(period, interval, stock_list):
-    import yfinance as yf
-    data = yf.download(tickers = stock_list, period = period, interval = interval, group_by = 'ticker', auto_adjust = False, prepost = True, threads = True, proxy = None)
-    return data
 
 def get_tx_cost(transaction_amount):
     total = 0
@@ -240,6 +166,13 @@ def plot_signals(df):
     y=1.1,
     xanchor="right",
     x=1
+    ),
+    margin=dict(
+        l=10,
+        r=10,
+        b=10,
+        t=10,
+        pad=4
     ))
 
     # Add range slider
@@ -427,7 +360,7 @@ def plot_performance(performance):
     df_sum = pd.DataFrame(sum_data)
 
     fig = make_subplots(
-        rows=1, cols=2, horizontal_spacing=0.3,
+        rows=1, cols=2,
         specs=[[{"type": "domain"}, {"type": "domain"}]],
         subplot_titles=['Trade(s): '+str(no_of_trade), 'Profit($): '+str(total_profit)]
     )
@@ -453,82 +386,18 @@ def plot_performance(performance):
     y=1.1,
     xanchor="right",
     x=1
+    ),
+    margin=dict(
+        l=10,
+        r=10,
+        b=10,
+        t=10,
+        pad=4
     ))
     
     return fig
 
-def send_html_email(receiver, subject, html_body):
-    sender = "mdascalgotrading@gmail.com"
-    password = "trend2020"
-    message = MIMEMultipart("alternative")
-    message["From"] = sender
-    message["To"] = receiver
-    message["Subject"] = subject
-    message.attach(MIMEText(html_body, "html"))
-    # Create secure connection with server and send email
-    context = ssl.create_default_context()
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-        server.login(sender, password)
-        server.sendmail(
-            sender, receiver, message.as_string()
-        )
-    return True
 
-def send_order_signal(receiver, tx_df, performance, execution_date):
-    
-    delta = 0
-    last_tx_date = datetime.strftime(tx_df.index[-1] - timedelta(delta), '%Y-%m-%d')
-    #last_tx_date = '2020-09-02'
-    #execution_date = '2020-09-02'
-
-    if str(last_tx_date)==str(execution_date):
-
-        price = float(tx_df.close[-1])
-        tx_shares = int(tx_df.tx_shares[-1])
-        if tx_shares>0:
-            action = "Buy"
-        else:
-            action = "Sell"
-        tx_shares = abs(tx_shares)
-
-        strategy = str(performance[0])
-        stock = str(performance[1])
-
-        no_of_win = int(performance[2])
-        no_of_loss = int(performance[3])
-        no_of_trade = int(performance[4])
-        win_rate = no_of_win/no_of_trade
-        total_win = float(performance[5])
-        total_loss = float(performance[6])
-        total_profit = float(performance[7])
-        total_cost = float(performance[8])
-        ROI = float(performance[9])
-
-        subject = "{action} {tx_shares} shares of {stock} at ${price}"
-
-        subject = subject.replace('{stock}', stock)
-        subject = subject.replace('{action}', action)
-        subject = subject.replace('{price}', str(price))
-        subject = subject.replace('{tx_shares}', str(tx_shares))
-
-        html_body = """\
-          <html>
-            <body>
-                Win (%): {no_of_win}/{no_of_trade} ({win_rate}) <br>
-                Profit (%):  {total_profit} ({ROI}) <br>
-                by {strategy} on {execution_date}
-            </body>
-          </html>
-          """
-        html_body = html_body.replace('{no_of_win}', str(no_of_win))
-        html_body = html_body.replace('{no_of_trade}', str(no_of_trade))
-        html_body = html_body.replace('{win_rate}', '{:.1%}'.format(win_rate))
-        html_body = html_body.replace('{total_profit}', str(total_profit))
-        html_body = html_body.replace('{ROI}', '{:.1%}'.format(ROI))
-        html_body = html_body.replace('{strategy}', strategy)
-        html_body = html_body.replace('{execution_date}', str(execution_date))
-
-        send_html_email(receiver, subject, html_body)
         
 app.layout = html.Div(
     [
@@ -653,7 +522,7 @@ def create_plan(n_clicks, strategy, stocks, capital):
     all_trade_df = pd.DataFrame(columns = ['trade_no', 'strategy', 'stock', 'tx_cost', 'net_profit'])
     for stock in stocks:
         graphs = []
-        position = eval(strategy)(strategy, stock)
+        position = eval('TA.'+strategy)(strategy, stock)
         position['tx_shares'] = int(0)
         position['tx_cost'] = 0.0
         position['shares'] = int(0)
@@ -712,7 +581,7 @@ def create_plan(n_clicks, strategy, stocks, capital):
             dcc.Tab(label='{} ({:.1%})'.format(stock, performance[9]), children=graphs)
         )
         
-        send_order_signal(current_user.email, tx_df, performance, date.today())
+        Email.send_order_signal(current_user.email, tx_df, performance, date.today())
         tx_frames = [all_tx_df, tx_df]
         all_tx_df = pd.concat(tx_frames)
         trade_frames = [all_trade_df, trade_df]
