@@ -566,14 +566,20 @@ def create_plan(n_clicks, strategy, stocks, capital):
         graphs.append(
             dcc.Graph(
             id='performance-{}'.format(stock),
-            figure = plot_performance(performance)
+            figure = plot_performance(performance),
+        config={
+        'displayModeBar': False
+        }
             )
         )  
         
         graphs.append(
             dcc.Graph(
             id='graph-{}'.format(stock),
-            figure = plot_signals(position)
+            figure = plot_signals(position),
+        config={
+        'displayModeBar': False
+        }
             )
         )
         
@@ -593,7 +599,10 @@ def create_plan(n_clicks, strategy, stocks, capital):
     portfolio_graphs.append(
         dcc.Graph(
         id='performance-{}'.format('Portfolio'),
-        figure = plot_performance(all_performance)
+        figure = plot_performance(all_performance),
+        config={
+        'displayModeBar': False
+        }
         )
     )  
     tabs.insert(0, 
