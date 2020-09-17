@@ -7,7 +7,7 @@ def download_data_from_yf(period, interval, stock_list):
     data = yf.download(tickers = stock_list, period = period, interval = interval, group_by = 'ticker', prepost = True)
     return data
 
-def get_stock_historial_data(stock_list, period='1y'):
+def get_stock_historial_data(stock_list, period='2y'):
     yf_data = download_data_from_yf(period, '1d', stock_list).copy()
     yf_data.rename(columns = {'Open':'open',
                               'High':'high',

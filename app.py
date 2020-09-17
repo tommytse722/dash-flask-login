@@ -163,16 +163,15 @@ def plot_signals(df):
     fig.update_layout(legend=dict(
     orientation="h",
     yanchor="bottom",
-    y=1.1,
+    y=1.2,
     xanchor="right",
     x=1
     ),
     margin=dict(
         l=10,
         r=10,
-        b=10,
-        t=10,
-        pad=4
+        b=20,
+        t=10
     ))
 
     # Add range slider
@@ -383,16 +382,15 @@ def plot_performance(performance):
     fig.update_layout(legend=dict(
     orientation="h",
     yanchor="bottom",
-    y=1.1,
+    y=1.2,
     xanchor="right",
     x=1
     ),
     margin=dict(
         l=10,
         r=10,
-        b=10,
-        t=10,
-        pad=4
+        b=20,
+        t=10
     ))
     
     return fig
