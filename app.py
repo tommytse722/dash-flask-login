@@ -446,8 +446,9 @@ success_layout = html.Div(children=[
          value=''
     ),
     dcc.Input(id='capital-text', type='number', value='', min=10000, step=10000, style={'width': '110px', 'textAlign': 'right'}),
-    html.Button('Create', type='submit', id='create-button', n_clicks=0),
-    html.Div(id='container',style = {'width': '100%'}),
+    html.Button('Save', type='submit', id='create-button', n_clicks=0),
+    html.Div(id='plan_container',style = {'width': '100%'}),
+    html.P(id='placeholder'),
 ])
 
 
@@ -508,7 +509,7 @@ def cur_user(input1):
     
     
 @app.callback(
-    Output('container', 'children'),
+    Output('placeholder', 'children'),
     [Input('create-button', 'n_clicks')],
     [State('strategy-dropdown', 'value'),
     State('stock-dropdown', 'value'),
@@ -518,6 +519,15 @@ def create_plan(create_clicks, strategy, stocks, capital):
         plan_mgt.del_plan(current_user.id)
         for stock in stocks:
             plan_mgt.add_plan(current_user.id, strategy, stock, capital)
+    return ''
+
+
+@app.callback(
+    Output('plan_container', 'children'),
+    [Input('strategy-dropdown', 'value'),
+    Input('stock-dropdown', 'value'),
+    Input('capital-text', 'value')])
+def create_plan(strategy, stocks, capital):
     return show_plan(strategy, stocks, capital)
 
 
