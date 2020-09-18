@@ -78,7 +78,6 @@ def get_plan(id):
     conn.close()
     return df
 
-
 def get_tx_cost(transaction_amount):
     total = 0
     if float(transaction_amount)>0:

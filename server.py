@@ -1,5 +1,6 @@
 # Dash app initialization
 import dash
+import dash_bootstrap_components as dbc
 # User management initialization
 import os
 from flask_login import LoginManager, UserMixin
@@ -9,6 +10,7 @@ from config import config
 
 app = dash.Dash(
     __name__,
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
     meta_tags=[
         {
             'charset': 'utf-8',
