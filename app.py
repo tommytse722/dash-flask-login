@@ -119,7 +119,7 @@ def plot_signals(df):
     #fig.add_trace(go.Scatter(x=list(df.index), y=list(df.open), name="open", visible = "legendonly"), secondary_y=False)
     #fig.add_trace(go.Scatter(x=list(df.index), y=list(df.high), name="high", visible = "legendonly"), secondary_y=False)
     #ig.add_trace(go.Scatter(x=list(df.index), y=list(df.low), name="low", visible = "legendonly"), secondary_y=False)
-    fig.add_trace(go.Scatter(x=list(df.index), y=list(df.close), name="close"), secondary_y=False)
+    fig.add_trace(go.Scatter(x=list(df.index), y=list(df.close), name="close", marker_color="black"), secondary_y=False)
     
     df2 = df[df.tx_shares>0][['close', 'tx_shares']]
     fig.add_trace(go.Scatter(x=list(df2.index), y=list(df2.close), name="Buy", 
@@ -337,6 +337,10 @@ def plot_performance(performance):
     return fig
 
 
+tabs_styles = {
+    
+}
+
 def show_plan(strategy, stocks, capital):
     tabs = []
     all_tx_df = pd.DataFrame(columns = ['strategy', 'stock', 'close', 'tx_shares', 'tx_cost', 'shares', 'cash', 'value'])
@@ -414,7 +418,7 @@ def show_plan(strategy, stocks, capital):
 
         tabs.insert(0, dcc.Tab(label='{} ({:.1%})'.format('Portfolio', all_performance[9]), children=portfolio_graphs))
     
-    return html.Div(dcc.Tabs(tabs))
+    return html.Div(dcc.Tabs(tabs, style=tabs_styles))
 
 
 app.layout = html.Div(
