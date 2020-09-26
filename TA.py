@@ -3,21 +3,15 @@ import pandas as pd
 from datetime import date, datetime, timedelta
 import sqlite3
 
-def get_ticker(stock):
-    conn = sqlite3.connect('database.db')
-    df = pd.read_sql_query("SELECT date, open, high, low, close, adj_close, volume FROM ticker where code = '" + str(stock) +"'", conn)
-    df = df.set_index('date')
-    conn.close()
-    return df
 
 def get_historial_data(stock):
     signals = get_ticker(stock).copy()
     return signals
 
-def SMA(strategy, stock):
+def SMA(strategy, stock, df):
     short_window = "20"
     long_window = "50"
-    signals = get_historial_data(stock)
+    signals = df.copy()
     signals[strategy+short_window] = signals.close.rolling(window=int(short_window)).mean().astype(float)
     signals[strategy+long_window] = signals.close.rolling(window=int(long_window)).mean().astype(float)
     signals['strength'] = np.where(signals[strategy+short_window] > signals[strategy+long_window], 1, 0).astype(int)
@@ -26,12 +20,12 @@ def SMA(strategy, stock):
     signals['action'] = np.diff(signals['strength'], prepend=0).astype(int)
     return signals
 
-def RSI(strategy, stock):
+def RSI(strategy, stock, df):
     window = '14'
     amplitude = '20'
     resistance = 50 + int(amplitude)
     support = 50 - int(amplitude)
-    signals = get_historial_data(stock)
+    signals = df.copy()
     signals['change'] = np.diff(signals.close, prepend=0)
     signals['up_strength'] = np.where(signals['change'] > 0, signals['change'], 0)
     signals['dn_strength'] = np.where(signals['change'] < 0, abs(signals['change']), 0)

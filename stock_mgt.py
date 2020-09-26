@@ -39,7 +39,7 @@ def format_board_lot(board_lot):
 def get_index_list(index):
     #hsi
     #hstech
-    generation_date = date.today() - timedelta(days=1)
+    generation_date = date.today() - timedelta(days=0)
     csv_path = 'https://www.hsi.com.hk/static/uploads/contents/en/indexes/report/{index}/con_{date}.csv'
     csv_path = csv_path.replace("{index}", index)
     csv_path = csv_path.replace("{date}", generation_date.strftime('%#d%b%y'))

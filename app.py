@@ -231,20 +231,25 @@ header = html.Div(
 
 def get_trade_df(tx_df, current_shares_value):
     df = tx_df[tx_df.tx_shares!=0][['strategy', 'stock', 'close', 'tx_shares', 'tx_cost']].copy()
-    count = 1
-    df['trade_no'] = count
-    for item, row in df.iterrows():
-        df.loc[item, 'trade_no'] = count
-        if row.tx_shares < 0:
-            count=count+1
-            
-    df['total_tx_shares'] = -1 * df['tx_shares']
-    df['net_profit'] = -1 * (df['close'] * df['tx_shares'] + df['tx_cost'])
-    trade_df = df.groupby('trade_no').agg({'strategy': 'max', 'stock': 'max', 'tx_cost': 'sum', 'net_profit': 'sum'})
-    trade_df.columns = ['strategy', 'stock', 'tx_cost', 'net_profit']
-    trade_df = trade_df.reset_index()
-    trade_df.iloc[-1, trade_df.columns.get_loc('net_profit')] = trade_df.iloc[-1, trade_df.columns.get_loc('net_profit')] + current_shares_value
-    trade_df.net_profit = trade_df.net_profit.round(2)   
+    if df.shape[0]>0:
+        count = 1
+        df['trade_no'] = count
+        for item, row in df.iterrows():
+            df.loc[item, 'trade_no'] = count
+            if row.tx_shares < 0:
+                count=count+1
+
+        df['total_tx_shares'] = -1 * df['tx_shares']
+        df['net_profit'] = -1 * (df['close'] * df['tx_shares'] + df['tx_cost'])
+        trade_df = df.groupby('trade_no').agg({'strategy': 'max', 'stock': 'max', 'tx_cost': 'sum', 'net_profit': 'sum'})
+        trade_df.columns = ['strategy', 'stock', 'tx_cost', 'net_profit']
+        trade_df = trade_df.reset_index()
+        trade_df.iloc[-1, trade_df.columns.get_loc('net_profit')] = trade_df.iloc[-1, trade_df.columns.get_loc('net_profit')] + current_shares_value
+        trade_df.net_profit = trade_df.net_profit.round(2)  
+    else:
+        trade_df = pd.DataFrame(columns = ['trade_no', 'strategy', 'stock', 'tx_cost', 'net_profit'])
+        new_row = {'trade_no':0, 'strategy':tx_df.strategy[0], 'stock':tx_df.stock[0], 'tx_cost':0.0, 'net_profit':0.0}
+        trade_df = trade_df.append(new_row, ignore_index=True)
     return trade_df
 
 def plot_trade(trade_df):
@@ -281,8 +286,7 @@ def get_performance_df(tx_df, trade_df):
     total_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].sum().round(0)
     total_profit = total_win + total_loss
     total_cost = trade_df['tx_cost'].sum().round(0)
-    
-    
+        
     initial_value = float(tx_df.groupby('stock').first().agg({'value': 'sum'})[0])
     final_value = initial_value + total_profit
     ROI = ((final_value-initial_value)/initial_value)
@@ -340,13 +344,80 @@ tabs_styles = {
     
 }
 
-def show_plan(strategy, stocks, capital):
+def get_tickers(stocks):
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT code, date, open, high, low, close, adj_close, volume FROM ticker where code in (" + str(', '.join("'{0}'".format(s) for s in stocks)) +")", conn)
+    df = df.set_index('date')
+    conn.close()
+    return df
+
+def plot_value(stocks, all_df):  
+    # Create figure
+    fig = go.Figure()
+    
+    for stock in stocks:
+        df = all_df[all_df['stock']==stock]
+        strategy = str(df['strategy'][0])
+        stock = str(df['stock'][0])
+        fig.add_trace(go.Scatter(x=list(df.index), y=list(df.value), name=stock, visible = "legendonly"))
+
+    fig.add_trace(go.Scatter(x=list(df.index), y=list(all_df.reset_index().groupby(['index']).mean().value), name='Average', marker_color="black"))
+    
+    fig.update_layout(
+        height=400,
+        legend=dict(orientation="h", yanchor="bottom", y=1.2, xanchor="right", x=1),
+        margin=dict(l=10, r=10, b=20, t=10)
+    )
+    
+    # Add range slider
+    fig.update_layout(
+        xaxis=dict(
+            rangeselector=dict(
+                buttons=list([
+                    dict(count=1,
+                         label="1m",
+                         step="month",
+                         stepmode="backward"),
+                    dict(count=3,
+                         label="3m",
+                         step="month",
+                         stepmode="backward"),
+                    dict(count=6,
+                         label="6m",
+                         step="month",
+                         stepmode="backward"),
+                    dict(count=1,
+                         label="YTD",
+                         step="year",
+                         stepmode="todate"),
+                    dict(count=1,
+                         label="1y",
+                         step="year",
+                         stepmode="backward"),
+                    dict(step="all")
+                ])
+            ),
+            rangeslider=dict(
+                visible=True
+            ),
+            type="date"
+        )
+    )
+
+    # Set y-axes titles
+    fig.update_yaxes(title_text="Value")
+
+    return fig
+
+def show_plan(stocks, strategy, capital):
     tabs = []
+    ticker_df = get_tickers(stocks)
+    all_position_df = pd.DataFrame(columns = ['strategy', 'stock', 'close', 'tx_shares', 'tx_cost', 'shares', 'cash', 'value'])
     all_tx_df = pd.DataFrame(columns = ['strategy', 'stock', 'close', 'tx_shares', 'tx_cost', 'shares', 'cash', 'value'])
     all_trade_df = pd.DataFrame(columns = ['trade_no', 'strategy', 'stock', 'tx_cost', 'net_profit'])
     for stock in stocks:
         graphs = []
-        position = eval('TA.'+strategy)(strategy, stock)
+        position = eval('TA.'+strategy)(strategy, stock, ticker_df[ticker_df.code==stock])
         position['tx_shares'] = int(0)
         position['tx_cost'] = 0.0
         position['shares'] = int(0)
@@ -366,11 +437,11 @@ def show_plan(strategy, stocks, capital):
             last_shares = position.loc[item, 'shares']
 
         tx_df = get_tx_df(position)
-        #print(tx_df)      
+        print(tx_df)      
         trade_df = get_trade_df(tx_df, get_current_shares_value(position))
-        #print(trade_df)        
+        print(trade_df)        
         performance = get_performance_df(tx_df, trade_df)
-        #print(performance)   
+        print(performance)   
         
         graphs.append(
             dcc.Graph(
@@ -395,6 +466,8 @@ def show_plan(strategy, stocks, capital):
         tabs.append(dcc.Tab(label='{} ({:.1%})'.format(stock, performance[9]), children=graphs))
         
         Email.send_order_signal(current_user.email, tx_df, performance, date.today())
+        position_frames = [all_position_df, position]
+        all_position_df = pd.concat(position_frames)
         tx_frames = [all_tx_df, tx_df]
         all_tx_df = pd.concat(tx_frames)
         trade_frames = [all_trade_df, trade_df]
@@ -408,6 +481,16 @@ def show_plan(strategy, stocks, capital):
             dcc.Graph(
                 id='performance-{}'.format('Portfolio'),
                 figure = plot_performance(all_performance),
+                config={
+                    'displayModeBar': False
+                }
+            )
+        )  
+        
+        portfolio_graphs.append(
+            dcc.Graph(
+                id='value-{}'.format('Portfolio'),
+                figure = plot_value(stocks, all_position_df),
                 config={
                     'displayModeBar': False
                 }
@@ -525,11 +608,11 @@ def create_plan(create_clicks, strategy, stocks, capital):
 
 @app.callback(
     Output('plan_container', 'children'),
-    [Input('strategy-dropdown', 'value'),
-    Input('stock-dropdown', 'value'),
+    [Input('stock-dropdown', 'value'),
+     Input('strategy-dropdown', 'value'),
     Input('capital-text', 'value')])
-def create_plan(strategy, stocks, capital):
-    return show_plan(strategy, stocks, capital)
+def create_plan(stocks, strategy, capital):
+    return show_plan(stocks, strategy, capital)
 
 
 if __name__ == '__main__':
