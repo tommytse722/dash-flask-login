@@ -366,11 +366,11 @@ def show_plan(strategy, stocks, capital):
             last_shares = position.loc[item, 'shares']
 
         tx_df = get_tx_df(position)
-        print(tx_df)      
+        #print(tx_df)      
         trade_df = get_trade_df(tx_df, get_current_shares_value(position))
-        print(trade_df)        
+        #print(trade_df)        
         performance = get_performance_df(tx_df, trade_df)
-        print(performance)   
+        #print(performance)   
         
         graphs.append(
             dcc.Graph(
