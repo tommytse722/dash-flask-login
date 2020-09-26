@@ -231,7 +231,6 @@ header = html.Div(
 
 def get_trade_df(tx_df, current_shares_value):
     df = tx_df[tx_df.tx_shares!=0][['strategy', 'stock', 'close', 'tx_shares', 'tx_cost']].copy()
-    
     count = 1
     df['trade_no'] = count
     for item, row in df.iterrows():
@@ -356,9 +355,7 @@ def show_plan(strategy, stocks, capital):
         
         last_cash = int(capital)
         last_shares = 0  
-        
         for item, position_row in position.iterrows():
-
             position.loc[item, 'tx_shares'] = int(get_tx_shares(item, position, position_row, last_cash, last_shares))
             position.loc[item, 'tx_cost'] = get_tx_cost(position_row.close * abs(position.loc[item, 'tx_shares']))
             position.loc[item, 'shares'] = int(last_shares + position.loc[item, 'tx_shares'])
@@ -367,12 +364,13 @@ def show_plan(strategy, stocks, capital):
 
             last_cash = position.loc[item, 'cash']
             last_shares = position.loc[item, 'shares']
-        
+
         tx_df = get_tx_df(position)
-        
+        print(tx_df)      
         trade_df = get_trade_df(tx_df, get_current_shares_value(position))
-        
+        print(trade_df)        
         performance = get_performance_df(tx_df, trade_df)
+        print(performance)   
         
         graphs.append(
             dcc.Graph(

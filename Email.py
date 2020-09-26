@@ -26,8 +26,9 @@ def send_html_email(receiver, subject, html_body):
 
 def send_order_signal(receiver, tx_df, performance, execution_date):
     
+    last_tx_date = tx_df.index[-1][0:10]
     delta = 0
-    last_tx_date = datetime.strftime(tx_df.index[-1] - timedelta(delta), '%Y-%m-%d')
+    last_tx_date = datetime.strftime(datetime.strptime(last_tx_date, '%Y-%m-%d') - timedelta(delta), '%Y-%m-%d')
     #last_tx_date = '2020-09-02'
     #execution_date = '2020-09-02'
 

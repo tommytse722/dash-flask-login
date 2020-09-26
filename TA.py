@@ -1,27 +1,17 @@
 import numpy as np
 import pandas as pd
 from datetime import date, datetime, timedelta
-import yfinance as yf
+import sqlite3
 
-def download_data_from_yf(period, interval, stock_list):
-    data = yf.download(tickers = stock_list, period = period, interval = interval, group_by = 'ticker', prepost = True)
-    return data
-
-def get_stock_historial_data(stock_list, period='2y'):
-    yf_data = download_data_from_yf(period, '1d', stock_list).copy()
-    yf_data.rename(columns = {'Open':'open',
-                              'High':'high',
-                              'Low':'low',
-                              'Close':'close',
-                              'Adj Close':'adj_close',
-                              'Volume':'volume',
-                             }, inplace=True)
-    yf_data.index.names = ["date"]
-    data = yf_data.round(3).copy()
-    return data
+def get_ticker(stock):
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT date, open, high, low, close, adj_close, volume FROM ticker where code = '" + str(stock) +"'", conn)
+    df = df.set_index('date')
+    conn.close()
+    return df
 
 def get_historial_data(stock):
-    signals = get_stock_historial_data(stock).copy()
+    signals = get_ticker(stock).copy()
     if stock == '0017.HK':
         split_date = datetime(2020,6,9)
         for item, row in signals.iterrows():
