@@ -7,20 +7,16 @@ from datetime import date, datetime, timedelta
 
 db = SQLAlchemy()
 
-
 class Stock(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(20), unique=True)
     name = db.Column(db.String(50))
     board_lot = db.Column(db.Integer)
 
-
 Stock_tbl = Table('stock', Stock.metadata)
-
 
 def create_stock_table():
     Stock.metadata.create_all(engine)
-    
     
 def drop_stock_table():
     Stock_tbl.drop(engine)
@@ -56,7 +52,7 @@ def get_indice_stock_list():
     indice_stock_list = hsi_list + ',' + hstech_list
     return sorted(set(indice_stock_list.split(',')))
 
-def add_stock():
+def download_stock():
     df = get_stock_df()
     df.to_sql('stock', engine, if_exists='append', index=False)
     #batch_df = df.iloc[0:2000]

@@ -5,7 +5,13 @@ from config import engine
 import pandas as pd
 from datetime import date, datetime, timedelta
 import yfinance as yf
-import stock_mgt
+import sqlite3
+
+def get_stock():
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT code FROM stock", conn)
+    conn.close()
+    return df['code'].tolist()
 
 def download_data_from_yf(period, interval, stock):
     data = yf.download(tickers = stock, period = period, interval = interval, group_by = 'ticker', prepost = True)
@@ -42,7 +48,7 @@ class ticker(db.Model):
 ticker_tbl = Table('ticker', ticker.metadata)
 
 def download_ticker():
-    for stock in stock_mgt.get_indice_stock_list():
+    for stock in get_stock():
         print(stock)
         df = get_stock_historial_data(stock)
         df.to_sql('ticker', engine, if_exists='append', index=False)
