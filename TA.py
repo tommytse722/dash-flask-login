@@ -12,11 +12,6 @@ def get_ticker(stock):
 
 def get_historial_data(stock):
     signals = get_ticker(stock).copy()
-    if stock == '0017.HK':
-        split_date = datetime(2020,6,9)
-        for item, row in signals.iterrows():
-            if item<=split_date:
-                signals.loc[item, 'close'] = row.close * 4
     return signals
 
 def SMA(strategy, stock):
