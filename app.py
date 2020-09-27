@@ -531,8 +531,13 @@ success_layout = html.Div(children=[
          options=[{'label': row['name'], 'value': row['name']} for index, row in select_strategy().iterrows()],
          value=''
     ),
-    dcc.Input(id='capital-text', type='number', value='', min=10000, step=10000, style={'width': '110px', 'textAlign': 'right'}),
-    html.Button('Save', type='submit', id='create-button', n_clicks=0),
+    html.Div(
+            children=[
+                html.Label("Capital: ", style={'display': 'inline-block'}),
+                dcc.Input(id='capital-text', type='number', value='', min=10000, step=10000, style={'width': '110px', 'textAlign': 'right','margin-left': 10, 'display': 'inline-block'}),
+                html.Button('Save', type='submit', id='create-button', n_clicks=0, style={'margin-left': 25,'display': 'inline-block'}),
+            ]
+    ),
     html.Div(id='plan_container',style = {'width': '100%'}),
     html.P(id='placeholder'),
 ])
