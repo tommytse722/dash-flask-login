@@ -535,7 +535,8 @@ success_layout = html.Div(children=[
             children=[
                 html.Label("Capital: ", style={'display': 'inline-block'}),
                 dcc.Input(id='capital-text', type='number', value='', min=10000, step=10000, style={'width': '110px', 'textAlign': 'right','margin-left': 10, 'display': 'inline-block'}),
-                html.Button('Save', type='submit', id='create-button', n_clicks=0, style={'margin-left': 25,'display': 'inline-block'}),
+                html.Button('Load', type='submit', id='load-button', n_clicks=0, style={'margin-left': 20,'display': 'inline-block'}),
+                html.Button('Save', type='submit', id='create-button', n_clicks=0, style={'margin-left': 20,'display': 'inline-block'}),
             ]
     ),
     html.Div(id='plan_container',style = {'width': '100%'}),
@@ -591,8 +592,8 @@ def user_logout(input1):
      Output('stock-dropdown', 'value'),
      Output('capital-text', 'value')
     ],
-    [Input('page-content', 'children')])
-def cur_user(input1):
+    [Input('page-content', 'children'), Input('load-button', 'n_clicks')])
+def cur_user(input1, load_clicks):
     if current_user.is_authenticated:
         return get_content(current_user.id)
     else:
