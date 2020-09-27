@@ -66,8 +66,8 @@ def get_trade_df(tx_df, current_shares_value):
     return trade_df
 
 def get_performance_df(tx_df, trade_df):
-    strategy = ', '.join(tx_df.strategy.unique())
-    stock = ', '.join(tx_df.stock.unique())
+    strategy = tx_df.strategy[0]
+    stock = tx_df.stock[0]
     no_of_win = trade_df[trade_df['net_profit']>0]['net_profit'].count()
     no_of_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].count()
     no_of_trade = int(no_of_win + no_of_loss)
