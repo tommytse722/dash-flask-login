@@ -34,12 +34,6 @@ def select_strategy():
     conn.close()
     return df
 
-def get_strategy_details(id):
-    conn = sqlite3.connect('database.db')
-    df = pd.read_sql_query("SELECT * FROM strategy where id = " + str(id), conn)
-    conn.close()
-    return df
-
 def select_stock():
     conn = sqlite3.connect('database.db')
     df = pd.read_sql_query("SELECT * FROM stock", conn)
@@ -60,15 +54,10 @@ def get_content(user_id):
     
     return strategy, stocks, capital
 
-def get_all_plans():
+def get_tickers(stocks):
     conn = sqlite3.connect('database.db')
-    df = pd.read_sql_query("SELECT strategy_name as 'Strategy', stock_code as 'Stock Code', capital as 'Initial Capital' FROM plan", conn)
-    conn.close()
-    return df
-
-def get_plan(id):
-    conn = sqlite3.connect('database.db')
-    df = pd.read_sql_query("SELECT strategy_name as 'Strategy', stock_code as 'Stock Code', capital as 'Initial Capital' FROM plan where plan.user_id=" + str(id), conn)
+    stock_list = str(', '.join("'{0}'".format(s) for s in stocks))
+    df = pd.read_sql_query("SELECT stock.code, date, open, high, low, close, adj_close, volume, board_lot FROM stock, ticker where stock.code in (" + stock_list +") and stock.code = ticker.code", conn)
     conn.close()
     return df
 
@@ -257,13 +246,6 @@ def plot_performance(performance):
 tabs_styles = {
     
 }
-
-def get_tickers(stocks):
-    conn = sqlite3.connect('database.db')
-    stock_list = str(', '.join("'{0}'".format(s) for s in stocks))
-    df = pd.read_sql_query("SELECT stock.code, date, open, high, low, close, adj_close, volume, board_lot FROM stock, ticker where stock.code in (" + stock_list +") and stock.code = ticker.code", conn)
-    conn.close()
-    return df
 
 def plot_value(stocks, all_df):  
     # Create figure
