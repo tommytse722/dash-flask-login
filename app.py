@@ -194,8 +194,6 @@ def plot_trade(trade_df):
         title_text=title)
     return fig
 
-
-
 def plot_performance(performance):
 
     strategy = str(performance[0])
