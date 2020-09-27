@@ -46,12 +46,6 @@ def select_stock():
     conn.close()
     return df
 
-def select_stock_board_lot(stock_code):
-    conn = sqlite3.connect('database.db')
-    df = pd.read_sql_query("SELECT * FROM stock where code = '" + str(stock_code) +"'", conn)
-    conn.close()
-    return df
-
 def get_content(user_id):
     strategy = ''
     stocks = ''
@@ -77,30 +71,6 @@ def get_plan(id):
     df = pd.read_sql_query("SELECT strategy_name as 'Strategy', stock_code as 'Stock Code', capital as 'Initial Capital' FROM plan where plan.user_id=" + str(id), conn)
     conn.close()
     return df
-
-def get_tx_cost(transaction_amount):
-    total = 0
-    if float(transaction_amount)>0:
-        Commission_fee = float(transaction_amount) * 0.25 /100
-        Transaction_levy = float(transaction_amount) * 0.003 /100
-        Trading_fee = float(transaction_amount) * 0.005 /100
-        Stamp_duty = np.ceil(float(transaction_amount) * 0.1 /100)
-        CCASS_fee = max(5, float(transaction_amount) * 0.002 /100)
-        total = Commission_fee + Transaction_levy + Trading_fee + Stamp_duty + CCASS_fee
-    return float(total)
-
-def get_tx_shares(item, position, position_row, last_cash, last_shares):
-    tx_shares = 0
-    # Use all the cash allocated to a particular stock to buy as much shares as possible            
-    if int(position_row.action) == 1:
-        if int(last_shares)==0:
-            board_lot = select_stock_board_lot(position_row.stock)['board_lot'][0]
-            tx_shares = np.floor( (last_cash - get_tx_cost(last_cash)) / (position_row.close * board_lot) ) * board_lot
-    # Sell all the shares in hand
-    if int(position_row.action) == -1:
-        tx_shares = last_shares 
-    tx_shares = tx_shares * position_row.action
-    return int(tx_shares)
 
 def plot_signals(df):  
     
@@ -272,7 +242,7 @@ def plot_trade(trade_df):
 def get_current_shares_value(position_df):
     current_close = float(position_df.tail(1)['close'][0])
     current_shares = int(position_df.tail(1)['shares'][0])
-    current_shares_value = current_close*current_shares - get_tx_cost(current_close*current_shares)
+    current_shares_value = current_close*current_shares - TA.get_tx_cost(current_close*current_shares)
     return current_shares_value
 
 def get_performance_df(tx_df, trade_df):
@@ -346,7 +316,7 @@ tabs_styles = {
 
 def get_tickers(stocks):
     conn = sqlite3.connect('database.db')
-    df = pd.read_sql_query("SELECT code, date, open, high, low, close, adj_close, volume FROM ticker where code in (" + str(', '.join("'{0}'".format(s) for s in stocks)) +")", conn)
+    df = pd.read_sql_query("SELECT stock.code, date, open, high, low, close, adj_close, volume, board_lot FROM stock, ticker where stock.code = ticker.code and stock.code in (" + str(', '.join("'{0}'".format(s) for s in stocks)) +")", conn)
     df = df.set_index('date')
     conn.close()
     return df
@@ -419,25 +389,7 @@ def show_plan(stocks, strategy, capital):
     all_trade_df = pd.DataFrame(columns = ['trade_no', 'strategy', 'stock', 'tx_cost', 'net_profit'])
     for stock in stocks:
         graphs = []
-        position = eval('TA.'+strategy)(strategy, stock, ticker_df[ticker_df.code==stock])
-        position['tx_shares'] = int(0)
-        position['tx_cost'] = 0.0
-        position['shares'] = int(0)
-        position['cash'] = 0.0
-        position['value'] = 0.0
-        
-        last_cash = int(capital)
-        last_shares = 0  
-        for item, position_row in position.iterrows():
-            position.loc[item, 'tx_shares'] = int(get_tx_shares(item, position, position_row, last_cash, last_shares))
-            position.loc[item, 'tx_cost'] = get_tx_cost(position_row.close * abs(position.loc[item, 'tx_shares']))
-            position.loc[item, 'shares'] = int(last_shares + position.loc[item, 'tx_shares'])
-            position.loc[item, 'cash'] = last_cash - position_row.close * position.loc[item, 'tx_shares'] - position.loc[item, 'tx_cost']
-            position.loc[item, 'value'] = position.loc[item, 'cash'] + position_row.close * position.loc[item, 'shares']
-
-            last_cash = position.loc[item, 'cash']
-            last_shares = position.loc[item, 'shares']
-
+        position = TA.backtesting(stock, strategy, capital, ticker_df[ticker_df.code==stock])
         tx_df = get_tx_df(position)
         print(tx_df)      
         trade_df = get_trade_df(tx_df, get_current_shares_value(position))
