@@ -47,9 +47,7 @@ def backtesting(stock, strategy, capital, df):
         last_shares = position.loc[item, 'shares']
     return position
 
-def SMA(strategy, stock, df):
-    short_window = "20"
-    long_window = "50"
+def SMA(strategy, stock, df, short_window = "20", long_window = "50"):
     signals = df.copy()
     signals[strategy+short_window] = signals.close.rolling(window=int(short_window)).mean().astype(float)
     signals[strategy+long_window] = signals.close.rolling(window=int(long_window)).mean().astype(float)
@@ -59,9 +57,7 @@ def SMA(strategy, stock, df):
     signals['action'] = np.diff(signals['strength'], prepend=0).astype(int)
     return signals
 
-def RSI(strategy, stock, df):
-    window = '14'
-    amplitude = '20'
+def RSI(strategy, stock, df, window = '14', amplitude = '20'):
     resistance = 50 + int(amplitude)
     support = 50 - int(amplitude)
     signals = df.copy()
