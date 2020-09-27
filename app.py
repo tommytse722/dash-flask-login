@@ -363,7 +363,7 @@ def plot_value(stocks, all_df):
 
     fig.add_trace(go.Scatter(x=list(df.index), y=list(all_df.reset_index().groupby(['index']).mean().value), name='Average', marker_color="black"))
     
-    fig.add_trace(go.Scatter(x=list(df.index), y=list(all_df.reset_index().groupby(['index']).sum().value), name='Total', marker_color="blue", visible = "legendonly"))
+    fig.add_trace(go.Scatter(x=list(df.index), y=list(all_df.reset_index().groupby(['index']).sum().value), name='Total', marker_color="black", visible = "legendonly"))
     
     fig.update_layout(
         height=400,
