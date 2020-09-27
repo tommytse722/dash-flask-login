@@ -359,11 +359,11 @@ def plot_value(stocks, all_df):
         df = all_df[all_df['stock']==stock]
         strategy = str(df['strategy'][0])
         stock = str(df['stock'][0])
-        fig.add_trace(go.Scatter(x=list(df.index), y=list(df.value), name=stock))
+        fig.add_trace(go.Scatter(x=list(df.index), y=list(df.value), name=stock, visible = "legendonly"))
 
-    fig.add_trace(go.Scatter(x=list(df.index), y=list(all_df.reset_index().groupby(['index']).mean().value), name='Average', marker_color="black"))
+    fig.add_trace(go.Scatter(x=list(df.index), y=list(all_df.reset_index().groupby(['index']).mean().value), name='Average', marker_color="black", visible = "legendonly"))
     
-    fig.add_trace(go.Scatter(x=list(df.index), y=list(all_df.reset_index().groupby(['index']).sum().value), name='Total', marker_color="black", visible = "legendonly"))
+    fig.add_trace(go.Scatter(x=list(df.index), y=list(all_df.reset_index().groupby(['index']).sum().value), name='Total', marker_color="black"))
     
     fig.update_layout(
         height=400,
