@@ -317,7 +317,6 @@ tabs_styles = {
 def get_tickers(stocks):
     conn = sqlite3.connect('database.db')
     df = pd.read_sql_query("SELECT stock.code, date, open, high, low, close, adj_close, volume, board_lot FROM stock, ticker where stock.code = ticker.code and stock.code in (" + str(', '.join("'{0}'".format(s) for s in stocks)) +")", conn)
-    df = df.set_index('date')
     conn.close()
     return df
 

@@ -25,8 +25,9 @@ def get_tx_shares(item, position, position_row, last_cash, last_shares):
     tx_shares = tx_shares * position_row.action
     return int(tx_shares)
 
-def backtesting(stock, strategy, capital, ticker):
-    position = eval(strategy)(strategy, stock, ticker)
+def backtesting(stock, strategy, capital, df):
+    df = df.set_index('date')
+    position = eval(strategy)(strategy, stock, df)
     position['tx_shares'] = int(0)
     position['tx_cost'] = 0.0
     position['shares'] = int(0)
