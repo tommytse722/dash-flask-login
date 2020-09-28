@@ -62,7 +62,6 @@ def get_tickers(stocks):
     return df
 
 def plot_signals(df):  
-    
     strategy = str(df['strategy'][0])
     stock = str(df['stock'][0])
     
@@ -400,7 +399,7 @@ success_layout = html.Div(children=[
     ),
     html.Div(
             children=[
-                html.Label("HKD: ", style={'display': 'inline-block'}),
+                html.Label("HK$: ", style={'display': 'inline-block'}),
                 dcc.Input(id='capital-text', type='number', value='', min=10000, step=10000, style={'width': '110px', 'textAlign': 'right','margin-left': 5, 'display': 'inline-block'}),
                 html.Button('Load', type='submit', id='load-button', n_clicks=0, style={'margin-left': 20,'display': 'inline-block'}),
                 html.Button('Save', type='submit', id='create-button', n_clicks=0, style={'margin-left': 5,'display': 'inline-block'}),
