@@ -54,13 +54,6 @@ def get_content(user_id):
     
     return strategy, stocks, capital
 
-def get_tickers(stocks):
-    conn = sqlite3.connect('database.db')
-    stock_list = str(', '.join("'{0}'".format(s) for s in stocks))
-    df = pd.read_sql_query("SELECT stock.code, date, open, high, low, close, adj_close, volume, board_lot FROM stock, ticker where stock.code in (" + stock_list +") and stock.code = ticker.code", conn)
-    conn.close()
-    return df
-
 def plot_signals(df):  
     strategy = str(df['strategy'][0])
     stock = str(df['stock'][0])
@@ -304,7 +297,7 @@ def plot_value(stocks, all_df):
 
 def show_plan(stocks, strategy, capital):
     tabs = []
-    ticker_df = get_tickers(stocks)
+    ticker_df = TA.get_tickers(stocks)
     all_position_df = pd.DataFrame(columns = ['strategy', 'stock', 'close', 'tx_shares', 'tx_cost', 'shares', 'cash', 'value'])
     all_tx_df = pd.DataFrame(columns = ['strategy', 'stock', 'close', 'tx_shares', 'tx_cost', 'shares', 'cash', 'value'])
     all_trade_df = pd.DataFrame(columns = ['trade_no', 'strategy', 'stock', 'tx_cost', 'net_profit'])
@@ -330,7 +323,7 @@ def show_plan(stocks, strategy, capital):
         
         tabs.append(dcc.Tab(label='{} ({:.1%})'.format(stock, performance[9]), children=graphs))
         
-        Email.send_order_signal(current_user.email, tx_df, performance, date.today())
+        #Email.send_order_signal(current_user.email, tx_df, performance, date.today())
         
         position_frames = [all_position_df, position]
         all_position_df = pd.concat(position_frames)

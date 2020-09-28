@@ -1,6 +1,14 @@
 import numpy as np
 import pandas as pd
 from datetime import date, datetime, timedelta
+import sqlite3
+
+def get_tickers(stocks):
+    conn = sqlite3.connect('database.db')
+    stock_list = str(', '.join("'{0}'".format(s) for s in stocks))
+    df = pd.read_sql_query("SELECT stock.code, date, open, high, low, close, adj_close, volume, board_lot FROM stock, ticker where stock.code in (" + stock_list +") and stock.code = ticker.code", conn)
+    conn.close()
+    return df
 
 def get_tx_cost(transaction_amount):
     total = 0
@@ -80,9 +88,9 @@ def get_performance_df(tx_df, trade_df):
     ROI = ((final_value-initial_value)/initial_value)
     return [strategy, stock, no_of_win, no_of_loss, no_of_trade, total_win, total_loss, total_profit, total_cost, ROI]
 
-def backtesting(stock, strategy, capital, df):
+def backtesting(stock, strategy, capital, df, x="default", y="default"):
     df = df.set_index('date')
-    position = eval(strategy)(strategy, stock, df)
+    position = eval(strategy)(strategy, stock, df, x, y)
     position['tx_shares'] = int(0)
     position['tx_cost'] = 0.0
     position['shares'] = int(0)
@@ -106,7 +114,11 @@ def backtesting(stock, strategy, capital, df):
     performance = get_performance_df(tx_df, trade_df)
     return position, tx_df, trade_df, performance
 
-def SMA(strategy, stock, df, short_window = "20", long_window = "50"):
+def SMA(strategy, stock, df, short_window, long_window):
+    if short_window == "default":
+        short_window = "20"
+    if long_window == "default":
+        long_window = "50"
     signals = df.copy()
     signals[strategy+short_window] = signals.close.rolling(window=int(short_window)).mean().astype(float)
     signals[strategy+long_window] = signals.close.rolling(window=int(long_window)).mean().astype(float)
@@ -117,6 +129,10 @@ def SMA(strategy, stock, df, short_window = "20", long_window = "50"):
     return signals
 
 def RSI(strategy, stock, df, window = '14', amplitude = '20'):
+    if window == "default":
+        window = "14"
+    if amplitude == "default":
+        amplitude = "20"
     resistance = 50 + int(amplitude)
     support = 50 - int(amplitude)
     signals = df.copy()
