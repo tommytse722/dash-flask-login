@@ -330,7 +330,7 @@ def show_plan(stocks, strategy, capital):
         
         tabs.append(dcc.Tab(label='{} ({:.1%})'.format(stock, performance[9]), children=graphs))
         
-        Email.send_order_signal(current_user.email, tx_df, performance, date.today())
+        #Email.send_order_signal(current_user.email, tx_df, performance, date.today())
         
         position_frames = [all_position_df, position]
         all_position_df = pd.concat(position_frames)
