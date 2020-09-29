@@ -493,12 +493,13 @@ def create_plan(stocks, strategy, capital):
     Output('lastupdated', 'children'),
     [Input('update-button', 'n_clicks')])
 def update_data(update_clicks):
-    sm.drop_stock_table()
-    sm.create_stock_table()
-    sm.download_stock()
-    tm.drop_ticker_table()
-    tm.create_ticker_table()
-    tm.download_ticker()
+    if update_clicks>0:
+        sm.drop_stock_table()
+        sm.create_stock_table()
+        sm.download_stock()
+        tm.drop_ticker_table()
+        tm.create_ticker_table()
+        tm.download_ticker()
     return str(datetime.now())
 
 
