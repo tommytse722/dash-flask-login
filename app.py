@@ -21,7 +21,8 @@ from views import success, login, login_fd, logout
 
 import plan_mgt
 import strategy_mgt
-import stock_mgt
+import stock_mgt as sm
+import ticker_mgt as tm
 import TA
 import Email
 
@@ -398,6 +399,12 @@ success_layout = html.Div(children=[
                 html.Button('Save', type='submit', id='create-button', n_clicks=0, style={'margin-left': 5,'display': 'inline-block'}),
             ]
     ),
+    html.Div(
+            children=[
+                html.Button('Update', type='submit', id='update-button', n_clicks=0, style={'display': 'inline-block'}),
+                html.Label(str(datetime.now()), id='lastupdated', style={'display': 'inline-block'})
+                ]
+    ),
     html.Div(id='plan_container',style = {'width': '100%'}),
     html.P(id='placeholder'),
 ])
@@ -480,6 +487,19 @@ def create_plan(create_clicks, strategy, stocks, capital):
     Input('capital-text', 'value')])
 def create_plan(stocks, strategy, capital):
     return show_plan(stocks, strategy, capital)
+
+
+@app.callback(
+    Output('lastupdated', 'children'),
+    [Input('update-button', 'n_clicks')])
+def update_data(update_clicks):
+    sm.drop_stock_table()
+    sm.create_stock_table()
+    sm.download_stock()
+    tm.drop_ticker_table()
+    tm.create_ticker_table()
+    tm.download_ticker()
+    return str(datetime.now())
 
 
 if __name__ == '__main__':
