@@ -45,9 +45,11 @@ def get_tx_df(position_df):
     return tx_df
 
 def get_current_shares_value(position_df):
-    current_close = float(position_df.tail(1)['close'][0])
-    current_shares = int(position_df.tail(1)['shares'][0])
-    current_shares_value = current_close*current_shares - get_tx_cost(current_close*current_shares)
+    current_shares_value = 0
+    if position_df.shape[0]>0:
+        current_close = float(position_df.tail(1)['close'][0])
+        current_shares = int(position_df.tail(1)['shares'][0])
+        current_shares_value = current_close*current_shares - get_tx_cost(current_close*current_shares)
     return current_shares_value
 
 def get_trade_df(tx_df, current_shares_value):
