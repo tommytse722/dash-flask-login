@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from datetime import date, datetime, timedelta
 import sqlite3
+import optimal_mgt as om
 
 def get_tickers(stocks):
     conn = sqlite3.connect('database.db')
@@ -10,6 +11,32 @@ def get_tickers(stocks):
     conn.close()
     return df
 
+def select_strategy(name):
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT * FROM strategy where name = '{}'".format(name), conn)
+    conn.close()
+    x = 0
+    y = 0
+    if len(df)>0:
+        x = str(df.head(1)['x_default'][0])
+        y = str(df.head(1)['y_default'][0])
+    return x, y
+
+def get_strategy_parameters(strategy, stock, capital):
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT * FROM optimal where strategy_name='{}' and stock_code='{}' and capital={} order by last_updated DESC".format(strategy, stock, capital), conn)
+    conn.close()
+    x = 100
+    y = 100
+    if len(df)>0:
+        x = str(df.head(1)['x'][0])
+        y = str(df.head(1)['y'][0])
+    else:
+        x, y = select_strategy(strategy)
+        om.add_optimal(strategy, stock, capital, x, y)
+        get_strategy_parameters(strategy, stock, capital)
+    return x, y
+ 
 def get_tx_cost(transaction_amount):
     total = 0
     if float(transaction_amount)>0:
@@ -92,7 +119,7 @@ def get_performance_df(tx_df, trade_df):
 
 def backtesting(stock, strategy, capital, df, x="default", y="default"):
     df = df.set_index('date')
-    position = eval(strategy)(strategy, stock, df, x, y)
+    position = eval(strategy)(strategy, stock, capital, df, x, y)
     position['tx_shares'] = int(0)
     position['tx_cost'] = 0.0
     position['shares'] = int(0)
@@ -116,11 +143,9 @@ def backtesting(stock, strategy, capital, df, x="default", y="default"):
     performance = get_performance_df(tx_df, trade_df)
     return position, tx_df, trade_df, performance
 
-def SMA(strategy, stock, df, short_window, long_window):
-    if short_window == "default":
-        short_window = "20"
-    if long_window == "default":
-        long_window = "50"
+def SMA(strategy, stock, capital, df, short_window, long_window):
+    if short_window == "default" or long_window == "default":
+        short_window, long_window = get_strategy_parameters(strategy, stock, capital)
     signals = df.copy()
     signals[strategy+short_window] = signals.close.rolling(window=int(short_window)).mean().astype(float)
     signals[strategy+long_window] = signals.close.rolling(window=int(long_window)).mean().astype(float)
@@ -130,11 +155,9 @@ def SMA(strategy, stock, df, short_window, long_window):
     signals['action'] = np.diff(signals['strength'], prepend=0).astype(int)
     return signals
 
-def RSI(strategy, stock, df, window = '14', amplitude = '20'):
-    if window == "default":
-        window = "14"
-    if amplitude == "default":
-        amplitude = "20"
+def RSI(strategy, stock, capital, df, window, amplitude):
+    if window == "default" or amplitude == "default":
+        window, amplitude = get_strategy_parameters(strategy, stock, capital)
     resistance = 50 + int(amplitude)
     support = 50 - int(amplitude)
     signals = df.copy()

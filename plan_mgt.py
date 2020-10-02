@@ -3,9 +3,9 @@ from sqlalchemy.sql import select
 from flask_sqlalchemy import SQLAlchemy
 from config import engine
 import pandas as pd
+import datetime
 
 db = SQLAlchemy()
-
 
 class Plan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -13,6 +13,7 @@ class Plan(db.Model):
     strategy_name = db.Column(db.String(20))
     stock_code = db.Column(db.String(20))
     capital = db.Column(db.Integer)
+    last_updated = db.Column(db.DateTime(), default=datetime.datetime.now)
 
 
 Plan_tbl = Table('plan', Plan.metadata)

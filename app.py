@@ -35,6 +35,7 @@ def select_strategy():
     conn.close()
     return df
 
+
 def select_stock():
     conn = sqlite3.connect('database.db')
     df = pd.read_sql_query("SELECT * FROM stock", conn)
@@ -396,7 +397,7 @@ success_layout = html.Div(children=[
                 html.Label("HK$: ", style={'display': 'inline-block'}),
                 dcc.Input(id='capital-text', type='number', value='', min=10000, step=10000, style={'width': '110px', 'textAlign': 'right','margin-left': 5, 'display': 'inline-block'}),
                 html.Button('Load', type='submit', id='load-button', n_clicks=0, style={'margin-left': 20,'display': 'inline-block'}),
-                html.Button('Save', type='submit', id='create-button', n_clicks=0, style={'margin-left': 5,'display': 'inline-block'}),
+                html.Button('Save', type='submit', id='save-button', n_clicks=0, style={'margin-left': 5,'display': 'inline-block'}),
             ]
     ),
     html.Div(
@@ -468,12 +469,12 @@ def cur_user(input1, load_clicks):
     
 @app.callback(
     Output('placeholder', 'children'),
-    [Input('create-button', 'n_clicks')],
+    [Input('save-button', 'n_clicks')],
     [State('strategy-dropdown', 'value'),
     State('stock-dropdown', 'value'),
     State('capital-text', 'value')])
-def create_plan(create_clicks, strategy, stocks, capital):
-    if create_clicks>0:
+def save_plan(save_clicks, strategy, stocks, capital):
+    if save_clicks>0:
         plan_mgt.del_plan(current_user.id)
         for stock in stocks:
             plan_mgt.add_plan(current_user.id, strategy, stock, capital)
@@ -485,7 +486,7 @@ def create_plan(create_clicks, strategy, stocks, capital):
     [Input('stock-dropdown', 'value'),
      Input('strategy-dropdown', 'value'),
     Input('capital-text', 'value')])
-def create_plan(stocks, strategy, capital):
+def refresh_plan(stocks, strategy, capital):
     return show_plan(stocks, strategy, capital)
 
 
