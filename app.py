@@ -296,7 +296,7 @@ def plot_value(stocks, all_df):
 
     return fig
 
-def show_plan(user_id, stocks, strategy, capital, user_id):
+def show_plan(stocks, strategy, capital, user_id):
     tabs = []
     ticker_df = TA.get_tickers(stocks)
     all_position_df = pd.DataFrame(columns = ['strategy', 'stock', 'close', 'tx_shares', 'tx_cost', 'shares', 'cash', 'value'])
