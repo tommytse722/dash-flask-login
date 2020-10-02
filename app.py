@@ -397,12 +397,12 @@ success_layout = html.Div(children=[
                 html.Button('Save', type='submit', id='save-button', n_clicks=0, style={'margin-left': 5,'display': 'inline-block'}),
             ]
     ),
-    html.Div(
-            children=[
-                html.Button('Update', type='submit', id='update-button', n_clicks=0, style={'display': 'inline-block'}),
-                html.Label(str(datetime.now()), id='lastupdated', style={'display': 'inline-block'})
-                ]
-    ),
+    #html.Div(
+    #        children=[
+    #            html.Button('Update', type='submit', id='update-button', n_clicks=0, style={'display': 'inline-block'}),
+    #            html.Label(str(datetime.now()), id='lastupdated', style={'display': 'inline-block'})
+    #            ]
+    #),
     html.Div(id='plan_container',style = {'width': '100%'}),
     html.P(id='placeholder'),
 ])
