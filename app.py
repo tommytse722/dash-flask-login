@@ -24,7 +24,6 @@ import strategy_mgt
 import stock_mgt as sm
 import ticker_mgt as tm
 import TA
-import Email
 
 from strategy_mgt import db, Strategy
 
@@ -297,7 +296,7 @@ def plot_value(stocks, all_df):
 
     return fig
 
-def show_plan(stocks, strategy, capital):
+def show_plan(user_id, stocks, strategy, capital, user_id):
     tabs = []
     ticker_df = TA.get_tickers(stocks)
     all_position_df = pd.DataFrame(columns = ['strategy', 'stock', 'close', 'tx_shares', 'tx_cost', 'shares', 'cash', 'value'])
@@ -305,7 +304,7 @@ def show_plan(stocks, strategy, capital):
     all_trade_df = pd.DataFrame(columns = ['trade_no', 'strategy', 'stock', 'tx_cost', 'net_profit'])
     for stock in stocks:
         graphs = []
-        position, tx_df, trade_df, performance = TA.backtesting(stock, strategy, capital, ticker_df[ticker_df.code==stock])
+        position, tx_df, trade_df, performance = TA.backtesting(stock, strategy, capital, ticker_df[ticker_df.code==stock], "0", "0", user_id)
         
         graphs.append(
             dcc.Graph(
@@ -324,8 +323,6 @@ def show_plan(stocks, strategy, capital):
         )
         
         tabs.append(dcc.Tab(label='{} ({:.1%})'.format(stock, performance[9]), children=graphs))
-        
-        #Email.send_order_signal(current_user.email, tx_df, performance, date.today())
         
         position_frames = [all_position_df, position]
         all_position_df = pd.concat(position_frames)
@@ -487,7 +484,7 @@ def save_plan(save_clicks, strategy, stocks, capital):
      Input('strategy-dropdown', 'value'),
     Input('capital-text', 'value')])
 def refresh_plan(stocks, strategy, capital):
-    return show_plan(stocks, strategy, capital)
+    return show_plan(stocks, strategy, capital, current_user.id)
 
 
 @app.callback(

@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import date, datetime, timedelta
 import sqlite3
 import optimal_mgt as om
+import Email
 
 def get_tickers(stocks):
     conn = sqlite3.connect('database.db')
@@ -117,7 +118,7 @@ def get_performance_df(tx_df, trade_df):
     ROI = ((final_value-initial_value)/initial_value)
     return [strategy, stock, no_of_win, no_of_loss, no_of_trade, total_win, total_loss, total_profit, total_cost, ROI]
 
-def backtesting(stock, strategy, capital, df, x="default", y="default"):
+def backtesting(stock, strategy, capital, df, x="0", y="0", user_id="0"):
     df = df.set_index('date')
     position = eval(strategy)(strategy, stock, capital, df, x, y)
     position['tx_shares'] = int(0)
@@ -141,10 +142,13 @@ def backtesting(stock, strategy, capital, df, x="default", y="default"):
     tx_df = get_tx_df(position)
     trade_df = get_trade_df(tx_df, get_current_shares_value(position))
     performance = get_performance_df(tx_df, trade_df)
+    
+    #Email.send_order_signal(current_user.email, tx_df, performance, date.today())
+        
     return position, tx_df, trade_df, performance
 
 def SMA(strategy, stock, capital, df, short_window, long_window):
-    if short_window == "default" or long_window == "default":
+    if short_window == "0" or long_window == "0":
         short_window, long_window = get_strategy_parameters(strategy, stock, capital)
     signals = df.copy()
     signals[strategy+short_window] = signals.close.rolling(window=int(short_window)).mean().astype(float)
@@ -156,7 +160,7 @@ def SMA(strategy, stock, capital, df, short_window, long_window):
     return signals
 
 def RSI(strategy, stock, capital, df, window, amplitude):
-    if window == "default" or amplitude == "default":
+    if window == "0" or amplitude == "0":
         window, amplitude = get_strategy_parameters(strategy, stock, capital)
     resistance = 50 + int(amplitude)
     support = 50 - int(amplitude)
