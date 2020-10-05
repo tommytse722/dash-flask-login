@@ -83,7 +83,7 @@ def train_model(data, days_before):
     model.compile(optimizer = 'adam', loss = 'mean_squared_error')
 
     # Fitting the RNN to the Training set
-    model.fit(X_train, y_train, epochs = 5, batch_size = 16)
+    model.fit(X_train, y_train, epochs = 100, batch_size = 16)
     return model
 
 def test_model(model, scaler, data, days_before):

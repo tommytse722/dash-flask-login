@@ -43,6 +43,7 @@ def get_index_list(index):
     csv_path = 'https://www.hsi.com.hk/static/uploads/contents/en/indexes/report/{index}/con_{date}.csv'
     csv_path = csv_path.replace("{index}", index)
     csv_path = csv_path.replace("{date}", generation_date.strftime('%#d%b%y'))
+    print(csv_path)
     df = pd.read_csv(csv_path, sep='\t', lineterminator='\r', encoding='utf-16', header=1)
     return df
 
