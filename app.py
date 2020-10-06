@@ -28,6 +28,13 @@ import TA
 from strategy_mgt import db, Strategy
 
 
+def select_forecast(stock):
+    conn = sqlite3.connect('database.db')
+    df = pd.read_sql_query("SELECT * FROM forecast where stock_code = '{}'".format(stock), conn)
+    conn.close()
+    return df
+
+
 def select_strategy():
     conn = sqlite3.connect('database.db')
     df = pd.read_sql_query("SELECT * FROM strategy", conn)
@@ -72,6 +79,9 @@ def plot_signals(df):
     #fig.add_trace(go.Scatter(x=list(df.index), y=list(df.high), name="high", visible = "legendonly"), secondary_y=False)
     #ig.add_trace(go.Scatter(x=list(df.index), y=list(df.low), name="low", visible = "legendonly"), secondary_y=False)
     fig.add_trace(go.Scatter(x=list(df.index), y=list(df.close), name="close", marker_color="black"), secondary_y=False)
+    
+    df_forecast = select_forecast(stock)
+    fig.add_trace(go.Scatter(x=list(df_forecast.date), y=list(df_forecast.close), name="forecast", marker_color="gold"), secondary_y=False)
     
     df2 = df[df.tx_shares>0][['close', 'tx_shares']]
     fig.add_trace(go.Scatter(x=list(df2.index), y=list(df2.close), name="Buy", 

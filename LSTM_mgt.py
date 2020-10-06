@@ -1,10 +1,14 @@
 #Import the libraries
-
+from sqlalchemy import Table
+from sqlalchemy.sql import select
+from flask_sqlalchemy import SQLAlchemy
+from config import engine
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 plt.style.use('fivethirtyeight')
 
+from datetime import date, datetime, timedelta
 import math
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
@@ -13,6 +17,35 @@ from datetime import date, datetime, timedelta
 
 import sqlite3
 
+db = SQLAlchemy()
+
+
+class Forecast(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    stock_code = db.Column(db.String(20))
+    date = db.Column(db.Date())
+    close = db.Column(db.Float())
+    last_updated = db.Column(db.DateTime(), default=datetime.now)
+
+Forecast_tbl = Table('forecast', Forecast.metadata)
+
+
+def create_forecast_table():
+    Forecast.metadata.create_all(engine)
+    
+    
+def drop_forecast_table():
+    Forecast_tbl.drop(engine)
+
+
+def add_forecast(stock_code, future):
+    conn = engine.connect()
+    for index, row in future.iterrows():
+        insert_cmd = Forecast_tbl.insert().values(stock_code=stock_code, date=index, close=row['close'])
+        conn.execute(insert_cmd)
+    conn.close()
+    
+    
 def prediction():
     ticker_df = get_stock_ticker()
     for stock in list(ticker_df.code.unique()):
@@ -20,7 +53,7 @@ def prediction():
     
 def get_stock_ticker():
     conn = sqlite3.connect('database.db')
-    df = pd.read_sql_query("SELECT * FROM ticker", conn)
+    df = pd.read_sql_query("SELECT ticker.* FROM ticker where ticker.code in (select distinct(stock_code) from plan)", conn)
     conn.close()
     df['date'] = pd.to_datetime(df['date'])
     df = df.set_index('date')
@@ -117,7 +150,7 @@ def one_step_ahead(scaler, model, df, days_before):
     df = pd.concat([df, pd.DataFrame(new_row)], ignore_index=False)
     return df
 
-def forecast(scaler, data, model, days_before, days_after):
+def forecasting(scaler, data, model, days_before, days_after):
     df = data.filter(['close'])
     for _ in range(days_after):
         df = one_step_ahead(scaler, model, df, days_before)
@@ -153,7 +186,8 @@ def get_future_trend(stock, data, days_before, days_after):
     prediction = test_model(model, scaler, test_data, days_before)
     test = data[-len(prediction):]
     test.insert(1, "Prediction", prediction) 
-    future = forecast(scaler, data, model, days_before, days_after)
-    plot_data(stock, data, test, future, days_after)
-    trend = get_trend(future.tail(days_after+1)['close'])
+    future = forecasting(scaler, data, model, days_before, days_after)
+    plot_data(stock, data, test, future, days_after+1)
+    add_forecast(stock, future.tail(days_after+1))
+    trend = get_trend(future.tail(days_after)['close'])
     return trend
