@@ -99,20 +99,31 @@ def get_trade_df(tx_df, current_shares_value):
         trade_df.net_profit = trade_df.net_profit.round(2)  
     else:
         trade_df = pd.DataFrame(columns = ['trade_no', 'strategy', 'stock', 'tx_cost', 'net_profit'])
-        new_row = {'trade_no':0, 'strategy':tx_df.strategy[0], 'stock':tx_df.stock[0], 'tx_cost':0.0, 'net_profit':0.0}
-        trade_df = trade_df.append(new_row, ignore_index=True)
+        #new_row = {'trade_no':0, 'strategy':tx_df.strategy[0], 'stock':tx_df.stock[0], 'tx_cost':0.0, 'net_profit':0.0}
+        #trade_df = trade_df.append(new_row, ignore_index=True)
     return trade_df
 
 def get_performance_df(tx_df, trade_df):
+    
     strategy = tx_df.strategy[0]
     stock = tx_df.stock[0]
-    no_of_win = trade_df[trade_df['net_profit']>0]['net_profit'].count()
-    no_of_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].count()
+    
+    if trade_df.shape[0]>0:
+        no_of_win = trade_df[trade_df['net_profit']>0]['net_profit'].count()
+        no_of_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].count()
+        total_win = trade_df[trade_df['net_profit']>0]['net_profit'].sum().round(0)
+        total_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].sum().round(0)
+        total_cost = trade_df['tx_cost'].sum().round(0)
+    else:
+        no_of_win = 0
+        no_of_loss = 0
+        total_win = 0
+        total_loss = 0
+        total_cost = 0
+
     no_of_trade = int(no_of_win + no_of_loss)
-    total_win = trade_df[trade_df['net_profit']>0]['net_profit'].sum().round(0)
-    total_loss = trade_df[trade_df['net_profit']<=0]['net_profit'].sum().round(0)
     total_profit = total_win + total_loss
-    total_cost = trade_df['tx_cost'].sum().round(0)
+  
     initial_value = float(tx_df.groupby('stock').first().agg({'value': 'sum'})[0])
     final_value = initial_value + total_profit
     ROI = ((final_value-initial_value)/initial_value)

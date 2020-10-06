@@ -219,16 +219,19 @@ def plot_performance(performance):
         subplot_titles=['Trade(s): '+str(no_of_trade), 'Profit($): '+str(total_profit)]
     )
 
-    fig.add_trace(go.Pie(labels=count_labels, name='', values=count_values, hole=0.5, rotation=180, marker=dict(colors=colors), textinfo='value+percent'),
-                  row=1, col=1)
+    if no_of_trade>0:
+        height = 400
+    else:
+        height = 50
+        
+    fig.add_trace(go.Pie(labels=count_labels, name='', values=count_values, hole=0.5, rotation=180, marker=dict(colors=colors), textinfo='value+percent'), row=1, col=1)
 
-    fig.add_trace(go.Pie(labels=sum_labels, name='', values=sum_values, hole=0.5, rotation=180, marker=dict(colors=colors), textinfo='value'),
-                  row=1, col=2)
+    fig.add_trace(go.Pie(labels=sum_labels, name='', values=sum_values, hole=0.5, rotation=180, marker=dict(colors=colors), textinfo='value'), row=1, col=2)
 
     fig.update_layout(
-        height=400,
+        height=height,
         legend=dict(orientation="h", yanchor="bottom", y=1.2, xanchor="right", x=1),
-        margin=dict(l=10, r=10, b=20, t=10)
+        margin=dict(l=10, r=10, b=20, t=30)
     )
     
     return fig

@@ -177,5 +177,5 @@ def plan_optimization():
         ROI_distribution = get_ROI_distribution(r)
         x, y, z = backward_convolution(r, forward_convolution(ROI_distribution))
         print('The optimal value of (x, y, z) is ({}, {}, {})'.format(x, y, z))
-        #plot_ROI_distribution(r, np.array(ROI_distribution))
+        plot_ROI_distribution(r, np.array(ROI_distribution))
         add_optimal(r.strategy_name, r.stock_code, r.capital, x, y)
